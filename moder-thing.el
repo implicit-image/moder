@@ -378,11 +378,11 @@ PAIR-REGEXP-EXPR contains two regexp lists. The regexp in first
 (moder-thing-register 'search-regexp #'moder--inner-of-search-regexp #'moder--inner-of-search-regexp)
 
 (defun moder--parse-inner-of-thing-char (ch)
-  (when-let* ((ch-to-thing (assoc ch moder-char-thing-table)))
+  (when-let* ((ch-to-thing (assoc ch moder-local-char-thing-table)))
     (moder--parse-range-of-thing (cdr ch-to-thing) t)))
 
 (defun moder--parse-bounds-of-thing-char (ch)
-  (when-let* ((ch-to-thing (assoc ch moder-char-thing-table)))
+  (when-let* ((ch-to-thing (assoc ch moder-local-char-thing-table)))
     (moder--parse-range-of-thing (cdr ch-to-thing) nil)))
 
 (defun moder--parse-range-of-thing (thing inner)

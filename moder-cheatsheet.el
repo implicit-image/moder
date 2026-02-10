@@ -110,7 +110,7 @@ Currently `moder-cheatsheet-layout-qwerty', `moder-cheatsheet-layout-dvorak',
                    (if (= (1- col) (mod idx col))
                        "\n"
                      " "))))
-       moder-char-thing-table)
+       moder-local-char-thing-table)
       (string-join)
       (string-trim-right))))
 

@@ -162,6 +162,26 @@ Each item is a (THING FORWARD_SYNTAX_TO_INCLUDE BACKWARD-SYNTAX_TO_INCLUDE)."
   :type '(alist :key-type (character :tag "Char")
                 :value-type (symbol :tag "Thing")))
 
+(defcustom moder-buffer-local-char-thing-table-alist nil
+  "Mapping from buffer predicate (see `buffer-match-p') to char-thing-table to merge into local one."
+  :group 'moder
+  :type '(alist :key-type (buffer-predicate :tag "Bufferp")
+                :value-type (alist :key-type (character :tag "Char")
+                                   :value-type (symbol :tag "Thing"))))
+
+(defcustom moder-mode-local-char-thing-table-alist nil
+  ""
+  :group 'moder
+  :type '(alist :key-type (symbol :tag "Mode")
+                :value-type (alist :key-type (character :tag "Char")
+                                   :value-type (symbol :tag "Thing"))))
+
+(defvar-local moder-local-char-thing-table nil
+  "Variable for actual use after merging.")
+
+(defvar-local moder-local-char-thing-last-mode nil
+  "")
+
 (defcustom moder-thing-selection-directions
   '((inner . forward)
     (bounds . backward)
@@ -567,6 +587,9 @@ Has a structure of (sel-type point mark).")
 
 (defvar moder-insert-exit-hook nil
   "Hooks run when exit insert state.")
+
+(defvar moder-setup-local-things-hook nil
+  "Hooks run when setting local things for buffer. Each function is called with current local things table as the only argument.")
 
 ;;; Internal variables
 

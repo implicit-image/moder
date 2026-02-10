@@ -116,6 +116,54 @@ This minor mode is used by moder-global-mode, should not be enabled directly."
       (moder--global-enable)
     (moder--global-disable)))
 
+(defun moder--alist-set-preserve-ordering (key value alist &optional pred)
+  (let ((pred (or pred #'equal)))
+    (mapcar (lambda (elt)
+              (if (and (funcall pred (car elt) key))
+                  (cons (car elt) value)
+                elt))
+            alist)))
+
+(defun moder--merge-thing-table (into from)
+  "Merge FROM into INTO."
+  (dolist (pair from)
+    (let ((char (car pair))
+          (thing (cdr pair)))
+      (if (alist-get char into)
+          (setq-local into (moder--alist-set-preserve-ordering char thing into))
+        (add-to-list 'into pair))))
+  into)
+
+(defun moder--setup-local-things ()
+  "Merge mode-specific thing table with the global value."
+  ;; get global value
+  (when (and (not (minibufferp))
+             ;; dont recompute if mode hasnt changed
+             (or (null moder-local-char-thing-last-mode)
+                 (not (eql moder-local-char-thing-last-mode major-mode))))
+    (setq-local moder-local-char-thing-last-mode major-mode
+                moder-local-char-thing-table moder-char-thing-table)
+    ;; handle the mode-relative first
+    (when-let* ((char-thing-alist (alist-get major-mode moder-mode-local-char-thing-table-alist)))
+      (setq-local moder-local-char-thing-table
+                  (moder--merge-thing-table
+                   moder-local-char-thing-table
+                   char-thing-alist)))
+    ;; now buffer preds
+    (dolist (elt moder-buffer-local-char-thing-table-alist)
+      (let ((cond (car elt)))
+        (when (and (ignore-errors
+                     (buffer-match-p (car elt) (current-buffer))))
+          (setq-local moder-local-char-thing-table
+                      (moder--merge-thing-table
+                       moder-local-char-thing-table
+                       (cdr elt))))))
+    (when (null moder-local-char-thing-table)
+      (user-error "Table is empty"))
+    ;; run hook for later integration
+    (when moder-setup-local-things-hook
+      (run-hook-with-args 'moder-setup-local-things-hook moder-local-char-thing-table))))
+
 (defun moder--enable ()
   "Enable Moder.
 
@@ -159,6 +207,7 @@ there's no chance for moder to call an init function."
   (add-hook 'suspend-resume-hook 'moder--update-cursor)
   (add-hook 'kill-emacs-hook 'moder--on-exit)
   (add-hook 'desktop-after-read-hook 'moder--init-buffers)
+  (add-hook 'after-change-major-mode-hook 'moder--setup-local-things)
 
   (moder--enable-shims)
   ;; moder-esc-mode fix ESC in TUI

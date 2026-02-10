@@ -376,9 +376,9 @@ Looks up the state in moder-replace-state-name-list"
          (w 25)
          (col (min 5 (/ ww w))))
     (thread-last
-      moder-char-thing-table
+      moder-local-char-thing-table
       (seq-group-by #'cdr)
-      (seq-sort-by #'car #'string-lessp)
+      (seq-sort-by #'caadr #'<)
       (seq-map-indexed
        (lambda (th-pairs idx)
          (let* ((th (car th-pairs))
