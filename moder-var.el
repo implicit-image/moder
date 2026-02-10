@@ -154,7 +154,9 @@ Each item is a (THING FORWARD_SYNTAX_TO_INCLUDE BACKWARD-SYNTAX_TO_INCLUDE)."
     (?l . line)
     (?v . visual-line)
     (?d . defun)
-    (?. . sentence))
+    (?. . sentence)
+    (?/ . search-string)
+    (?% . search-regexp))
   "Mapping from char to thing."
   :group 'moder
   :type '(alist :key-type (character :tag "Char")

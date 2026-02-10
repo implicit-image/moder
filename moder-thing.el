@@ -89,6 +89,35 @@ The thing `string' is not available in Emacs 27.'"
   (cons (moder--visual-line-beginning-position)
         (moder--visual-line-end-position)))
 
+(defun moder--inner-of-search-string (&optional arg)
+  (let* ((str (if (or arg (null search-ring))
+                  (read-string "Search: ")
+                (car search-ring)))
+         (beg (save-mark-and-excursion
+                (goto-char (point-min))
+                (search-forward str (point-max) t 1)
+                (match-beginning 0)))
+         (end (save-mark-and-excursion
+                (goto-char (point-max))
+                (search-backward str beg t 1)
+                (match-end 0))))
+    (when (and beg end)
+      (cons beg end))))
+
+(defun moder--inner-of-search-regexp (&optional arg)
+  (let* ((str (if (or arg (null regexp-search-ring))
+                  (read-string "Search regex: ")
+                (car regexp-search-ring)))
+         (beg (save-mark-and-excursion
+                (goto-char (point-min))
+                (search-forward-regexp str (point-max) t 1)
+                (match-beginning 0)))
+         (end (save-mark-and-excursion
+                (goto-char (point-max))
+                (search-backward-regexp str beg t 1)
+                (match-end 0))))
+    (when (and beg end)
+      (cons beg end))))
 ;;; Registry
 
 (defvar moder--thing-registry nil
@@ -343,6 +372,10 @@ PAIR-REGEXP-EXPR contains two regexp lists. The regexp in first
 (moder-thing-register 'line #'moder--inner-of-line 'line)
 
 (moder-thing-register 'visual-line #'moder--inner-of-visual-line #'moder--inner-of-visual-line)
+
+(moder-thing-register 'search-string #'moder--inner-of-search-string #'moder--inner-of-search-string)
+
+(moder-thing-register 'search-regexp #'moder--inner-of-search-regexp #'moder--inner-of-search-regexp)
 
 (defun moder--parse-inner-of-thing-char (ch)
   (when-let* ((ch-to-thing (assoc ch moder-char-thing-table)))
