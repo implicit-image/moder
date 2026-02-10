@@ -2,17 +2,17 @@
 
 * Helper Functions
 
-** meow-define-keys
+** moder-define-keys
 
 Define key bindings in a state.
 
 #+begin_src emacs-lisp
-  (meow-define-keys
+  (moder-define-keys
    ;; state
    'normal
 
    ;; bind to a command
-   '("a" . meow-append)
+   '("a" . moder-append)
 
    ;; bind to a keymap
    (cons "h" help-map)
@@ -21,65 +21,65 @@ Define key bindings in a state.
    '("x" . "C-x C-x"))
 #+end_src
 
-** meow-normal-define-key
+** moder-normal-define-key
 
-Similar to ~meow-define-keys~.  Define key in NORMAL state.
+Similar to ~moder-define-keys~.  Define key in NORMAL state.
 
-** meow-motion-define-key
+** moder-motion-define-key
 
-Similar to ~meow-define-keys~.  Define key in MOTION state.
+Similar to ~moder-define-keys~.  Define key in MOTION state.
 
-** meow-leader-define-key
+** moder-leader-define-key
 
-Similar to ~meow-define-keys~.  Define key in leader keymap.
+Similar to ~moder-define-keys~.  Define key in leader keymap.
 
-The keymap used is the one listed in ~meow-keymap-alist~.
+The keymap used is the one listed in ~moder-keymap-alist~.
 
 By default, it is ~mode-specific-map~.
 
-** meow-setup-indicator
+** moder-setup-indicator
 
-A helper function that puts an indicator at the beginning of mode-line. If you want customize mode-line by hand, see `meow-indicator`.
+A helper function that puts an indicator at the beginning of mode-line. If you want customize mode-line by hand, see `moder-indicator`.
 
 Example usage:
 
 #+begin_src emacs-lisp
-  (meow-setup-indicator)
+  (moder-setup-indicator)
 #+end_src
 
-** meow-indicator
+** moder-indicator
 
 Return an indicator string that you can use in your `mode-line-format`.
 
 Example usage:
 
 #+begin_src emacs-lisp
-  (setq-default mode-line-format '((:eval (meow-indicator)) ...))
+  (setq-default mode-line-format '((:eval (moder-indicator)) ...))
 #+end_src
 
-** meow-thing-register
+** moder-thing-register
 
-Register a thing which can be used for ~meow-beginning/end/inner/bounds-of-thing~.  To bind it to a key, check variable ~meow-char-thing-table~.
+Register a thing which can be used for ~moder-beginning/end/inner/bounds-of-thing~.  To bind it to a key, check variable ~moder-char-thing-table~.
 
 Check function's documentation for usage examples.
 
-** meow-define-state
+** moder-define-state
 Define a custom state.
 
 Example usage:
 
 #+begin_src emacs-lisp
-  (setq meow-paren-keymap (make-keymap))
-  (meow-define-state paren
-    "meow state for interacting with smartparens"
+  (setq moder-paren-keymap (make-keymap))
+  (moder-define-state paren
+    "moder state for interacting with smartparens"
     :lighter " [P]"
-    :keymap meow-paren-keymap)
+    :keymap moder-paren-keymap)
 
-  ;; meow-define-state creates the variable
-  (setq meow-cursor-type-paren 'hollow)
+  ;; moder-define-state creates the variable
+  (setq moder-cursor-type-paren 'hollow)
 
-  (meow-define-keys 'paren
-    '("<escape>" . meow-normal-mode)
+  (moder-define-keys 'paren
+    '("<escape>" . moder-normal-mode)
     '("l" . sp-forward-sexp)
     '("h" . sp-backward-sexp)
     '("j" . sp-down-sexp)
@@ -88,22 +88,22 @@ Example usage:
     '("b" . sp-forward-barf-sexp)
     '("v" . sp-backward-barf-sexp)
     '("c" . sp-backward-slurp-sexp)
-    '("u" . meow-undo))
+    '("u" . moder-undo))
 #+end_src
 
 This function generates several new objects named based on the NAME parameter passed
 in. See the function’s docstring for a list of them.
 
-Similarly to =define-minor-mode=, your last parameter to =meow-define-state= may be
+Similarly to =define-minor-mode=, your last parameter to =moder-define-state= may be
 a single lisp form that is run every time the internal minor mode is entered
 and exited.
 
-If you already have a minor mode that you just need to register with meow, then
-see the documentation for the internal function =meow-register-state=.
+If you already have a minor mode that you just need to register with moder, then
+see the documentation for the internal function =moder-register-state=.
 
 * Variables
 
-** meow-mode-state-list
+** moder-mode-state-list
 
 Default:
 
@@ -115,16 +115,16 @@ Default:
    (text-mode . normal))
 #+end_src
 
-A list of rules: each of which specifies the initial Meow state for a major mode.
+A list of rules: each of which specifies the initial Moder state for a major mode.
 
 Value should be a list, each item is ~(major-mode . init-state)~.
 The ~init-state~ can be any state, including custom ones.
 
-By default, Meow uses ~motion~ for special modes (in which none of
+By default, Moder uses ~motion~ for special modes (in which none of
 the alphabet keys trigger a `self-insert` command), and ~normal~ for
 other modes. The default value aims to be general, minimal and sensible.
 
-** meow-expand-exclude-mode-list
+** moder-expand-exclude-mode-list
 
 Default: ~(markdown-mode org-mode)~
 
@@ -133,7 +133,7 @@ A list of major modes where expand feature should be disabled.
 The expand feature use ~overlay~ for display,
 and it may not work well with texts with inconsistent sizes.
 
-** meow-expand-hint-counts
+** moder-expand-hint-counts
 
 Default:
 #+begin_src emacs-lisp
@@ -146,32 +146,32 @@ Default:
 
 The maximum numbers for expand hints of each type.
 
-** meow-expand-hint-remove-delay
+** moder-expand-hint-remove-delay
 
 Default: 1.0
 
 The delay before the position hint disappears.
 
-** meow-selection-command-fallback
+** moder-selection-command-fallback
 
 Default:
 #+begin_src emacs-lisp
-  ((meow-change . meow-change-char)
-   (meow-kill . meow-C-k)
-   (meow-cancel-selection . keyboard-quit)
-   (meow-pop-selection . meow-pop-grab)
-   (meow-beacon-change . meow-beacon-change-char))
+  ((moder-change . moder-change-char)
+   (moder-kill . moder-C-k)
+   (moder-cancel-selection . keyboard-quit)
+   (moder-pop-selection . moder-pop-grab)
+   (moder-beacon-change . moder-beacon-change-char))
 #+end_src
 
 Fallback behaviours for selection-only commands when there's no selection.
 
-** meow-keypad-message
+** moder-keypad-message
 
 Default: ~t~
 
 Whether to log keypad messages in minibuffer.
 
-** meow-keypad-start-keys
+** moder-keypad-start-keys
 
 Default: ='((?c . ?c) (?h . ?h) (?x . ?x))=
 
@@ -179,7 +179,7 @@ Alist of keys to begin keypad translation. For instance, given the default
 value, pressing "c" in keypad mode will look up it's value in the alist, and
 add "C-c" to the keypad.
 
-** meow-keypad-self-insert-undefined
+** moder-keypad-self-insert-undefined
 
 Default: =t=
 
@@ -188,7 +188,7 @@ set to =t=, then pressing and undefined key in the keypad that is
 bound to self insert will insert that character. If nil, then ignore
 the key.
 
-** meow-char-thing-table
+** moder-char-thing-table
 
 Default:
 #+begin_src emacs-lisp
@@ -207,9 +207,9 @@ Default:
 
 Mapping from char to thing.
 
-Used by ~meow-beginning-of-thing~, ~meow-end-of-thing~, ~meow-inner-of-thing~ and ~meow-bounds-of-thing~.
+Used by ~moder-beginning-of-thing~, ~moder-end-of-thing~, ~moder-inner-of-thing~ and ~moder-bounds-of-thing~.
 
-** meow-replace-state-name-list
+** moder-replace-state-name-list
 
 Default:
 #+begin_src emacs-lisp
@@ -222,94 +222,94 @@ Default:
 
 A association list of state symbols to strings describing the state.
 
-** meow-indicator-face-alist
+** moder-indicator-face-alist
 Default:
 
 #+begin_src emacs-lisp
-((normal . meow-normal-indicator)
- (motion . meow-motion-indicator)
- (keypad . meow-keypad-indicator)
- (insert . meow-insert-indicator)
- (beacon . meow-beacon-indicator))
+((normal . moder-normal-indicator)
+ (motion . moder-motion-indicator)
+ (keypad . moder-keypad-indicator)
+ (insert . moder-insert-indicator)
+ (beacon . moder-beacon-indicator))
 #+end_src
 
-An association list of meow state symbols to indicator face symbols.
+An association list of moder state symbols to indicator face symbols.
 
-** meow-display-thing-help
+** moder-display-thing-help
 
 Default: ~t~
 
-Whether to display the help prompt for ~meow-inner/bounds/begin/end-of-thing~.
+Whether to display the help prompt for ~moder-inner/bounds/begin/end-of-thing~.
 
-** meow-keypad-describe-delay
+** moder-keypad-describe-delay
 
 Default: ~0.5~
 
 The delay in seconds before popup keybinding descriptions appear.
 
-** meow-grab-fill-commands
+** moder-grab-fill-commands
 
-Default: ~(meow-query-replace meow-query-replace-regexp)~
+Default: ~(moder-query-replace moder-query-replace-regexp)~
 
-A list of commands that meow will auto fill with grabbed content.
+A list of commands that moder will auto fill with grabbed content.
 
-** meow-goto-line-function
+** moder-goto-line-function
 
 Default: ~nil~
 
-Function to use in ~meow-goto-line~.
+Function to use in ~moder-goto-line~.
 
 Nil means find the command by key binding.
 
-** meow-visit-collect-min-length
+** moder-visit-collect-min-length
 
 Default: ~1~
 
-Minimal length when collecting symbols for ~meow-visit~.
+Minimal length when collecting symbols for ~moder-visit~.
 
-** meow-visit-sanitize-completion
+** moder-visit-sanitize-completion
 
 Default: ~t~
 
-Whether let ~meow-visit~ display symbol regexps in a sanitized format.
+Whether let ~moder-visit~ display symbol regexps in a sanitized format.
 
-** meow-use-clipboard
+** moder-use-clipboard
 
 Default: ~nil~
 
 Whether to use system clipboard.
 
-** meow-use-keypad-when-execute-kbd
+** moder-use-keypad-when-execute-kbd
 
 Default: ~t~
 
 Whether to use KEYPAD when the result of executing kbd string is a keymap.
 
-** meow-keypad-meta-prefix
+** moder-keypad-meta-prefix
 
 Default: ~?m~
 
 The prefix represent M- in KEYPAD state.
 
-** meow-keypad-ctrl-meta-prefix
+** moder-keypad-ctrl-meta-prefix
 
 Default: ~?g~
 
 The prefix represent C-M- in KEYPAD state.
 
-** meow-keypad-literal-prefix
+** moder-keypad-literal-prefix
 
 Default: ~32~ (SPC character)
 
 The prefix represent no modifier in KEYPAD state.
 
-** meow-expand-selection-type
+** moder-expand-selection-type
 
 Default: ~select~
 
-The type of selection activated by ~meow-expand-*~ commands.
+The type of selection activated by ~moder-expand-*~ commands.
 
-** meow-keypad-leader-dispatch
+** moder-keypad-leader-dispatch
 
 Default: ~nil~
 
@@ -318,9 +318,9 @@ The fallback dispatching in KEYPAD when there's no translation.
 The value can be either a string or a keymap:
 
 A keymap stands for a base keymap used for further translation.  A string stands for finding the
-keymap at a specified key binding.  Nil stands for taking leader keymap from ~meow-keymap-alist~.
+keymap at a specified key binding.  Nil stands for taking leader keymap from ~moder-keymap-alist~.
 
-** meow-keypad-leader-transparent
+** moder-keypad-leader-transparent
 
 Default: ~motion~
 
@@ -331,44 +331,44 @@ Use transparent behaivor when a bound command is not found in leader dispatch.
 - Value ~normal~ stands for only be transparent in NORMAL state.
 - Value ~nil~ stands for never be transparent."
 
-** meow-state-mode-alist
-Association list of symbols of meow states to their corresponding mode functions.
+** moder-state-mode-alist
+Association list of symbols of moder states to their corresponding mode functions.
 
-** meow-update-cursor-functions-alist
+** moder-update-cursor-functions-alist
 
 Association list of predicates to functions.
 
 This list is used to update the cursor type and face. The first value whose
 predicate evaluates to true will have its corresponding key run. This key
-should use ~meow--set-cursor-type~ and ~meow--set-cursor-color~ to update the cursor.
+should use ~moder--set-cursor-type~ and ~moder--set-cursor-color~ to update the cursor.
 
 You may customize this list for more complex modifications to the cursor.
 For instance, to change the face of the insert cursor to a hollow cursor only
 in org-mode, use
 
 #+BEGIN_SRC emacs-lisp
-(defun meow--update-cursor-custom ()
+(defun moder--update-cursor-custom ()
   (progn
-    (meow--set-cursor-type 'hollow)
-    (meow--set-cursor-color 'meow-insert-cursor)))
-(add-to-list 'meow-update-cursor-functions-alist
-             '((lambda () (and (meow-insert-mode-p)
+    (moder--set-cursor-type 'hollow)
+    (moder--set-cursor-color 'moder-insert-cursor)))
+(add-to-list 'moder-update-cursor-functions-alist
+             '((lambda () (and (moder-insert-mode-p)
                                (eq major-mode 'org-mode)))
-               . meow--update-cursor-custom))
+               . moder--update-cursor-custom))
 #+END_SRC
 Note that the both the car and cdr must be functions.
 
 However, for simple changes to the insert cursor it would be sufficient to
-change the variable =meow-cursor-type-insert=.
+change the variable =moder-cursor-type-insert=.
 
-** meow-keymap-alist
+** moder-keymap-alist
 
 Association list of symbols to their corresponding keymaps. Used
-to generate =meow-*-define-key= helpers.
+to generate =moder-*-define-key= helpers.
 
-** meow-word-thing, meow-symbol-thing
+** moder-word-thing, moder-symbol-thing
 
-The things used by meow for marking/movement by words and symbols, respectively.
+The things used by moder for marking/movement by words and symbols, respectively.
 
 The values are 'things' as understood by ~thingatpt~ - symbols that will be
 passed to ~forward-thing~ and ~bounds-of-thing-at-point~, which see.
@@ -383,7 +383,7 @@ the =word=, =symbol= and =sexp= things, respectively.
 
 *** Custom =word=, =symbol= definitions
 
-By customizing these variables, you can make Meow use your own definitions for
+By customizing these variables, you can make Moder use your own definitions for
 =word= and =symbol=. For example, here is how you can get =word= behavior closer
 to Vim's -
 
@@ -415,8 +415,8 @@ to Vim's -
 
 (put 'vimlike-word 'forward-op #'forward-vimlike-word)
 
-(setq meow-word-thing 'vimlike-word)
+(setq moder-word-thing 'vimlike-word)
 #+end_src
 
-Meow also provides ~meow-kill-word~ and ~meow-backward-kill-word~, versions of
-~kill-word~ and ~backward-kill-word~ that respect ~meow-word-thing~.
+Moder also provides ~moder-kill-word~ and ~moder-backward-kill-word~, versions of
+~kill-word~ and ~backward-kill-word~ that respect ~moder-word-thing~.

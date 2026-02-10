@@ -1,4 +1,4 @@
-;;; meow-var.el --- Meow variables  -*- lexical-binding: t; -*-
+;;; moder-var.el --- Moder variables  -*- lexical-binding: t; -*-
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,110 +22,110 @@
 
 ;;; Code:
 
-(defgroup meow nil
-  "Custom group for meow."
-  :group 'meow-module)
+(defgroup moder nil
+  "Custom group for moder."
+  :group 'moder-module)
 
 ;; Behaviors
 
-(defcustom meow-use-cursor-position-hack nil
+(defcustom moder-use-cursor-position-hack nil
   "Whether to use cursor position hack."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-use-enhanced-selection-effect nil
+(defcustom moder-use-enhanced-selection-effect nil
   "Whether to use enhanced cursor effect.
 
 This will affect how selection is displayed."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-expand-exclude-mode-list
+(defcustom moder-expand-exclude-mode-list
   '(markdown-mode org-mode)
   "A list of major modes where after command expand should be disabled."
-  :group 'meow
+  :group 'moder
   :type '(repeat sexp))
 
-(defcustom meow-keypad-execute-on-beacons nil
+(defcustom moder-keypad-execute-on-beacons nil
   "Execute keypad command directly on beacons when using it directly from
 beacon state.
 
 This doesn't affect how keypad works on recording or executing a kmacro."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-selection-command-fallback
-  '((meow-change . meow-change-char)
-    (meow-kill . meow-C-k)
-    (meow-save . kill-ring-save)
-    (meow-cancel-selection . keyboard-quit)
-    (meow-pop-selection . meow-pop-grab)
-    (meow-beacon-change . meow-beacon-change-char)
-    (meow-expand . meow-digit-argument))
+(defcustom moder-selection-command-fallback
+  '((moder-change . moder-change-char)
+    (moder-kill . moder-C-k)
+    (moder-save . kill-ring-save)
+    (moder-cancel-selection . keyboard-quit)
+    (moder-pop-selection . moder-pop-grab)
+    (moder-beacon-change . moder-beacon-change-char)
+    (moder-expand . moder-digit-argument))
   "Fallback commands for selection commands when there is no available selection."
-  :group 'meow
+  :group 'moder
   :type '(alist :key-type (function :tag "Command")
                 :value-type (function :tag "Fallback")))
 
-(defcustom meow-replace-state-name-list
+(defcustom moder-replace-state-name-list
   '((normal . "NORMAL")
     (motion . "MOTION")
     (keypad . "KEYPAD")
     (insert . "INSERT")
     (beacon . "BEACON"))
   "A list of mappings for how to display state in indicator."
-  :group 'meow
-  :type '(alist :key-type (symbol :tag "Meow state")
+  :group 'moder
+  :type '(alist :key-type (symbol :tag "Moder state")
                 :value-type (string :tag "Indicator")))
 
-(defvar meow-indicator-face-alist
-  '((normal . meow-normal-indicator)
-    (motion . meow-motion-indicator)
-    (keypad . meow-keypad-indicator)
-    (insert . meow-insert-indicator)
-    (beacon . meow-beacon-indicator))
-  "Alist of meow states -> faces")
+(defvar moder-indicator-face-alist
+  '((normal . moder-normal-indicator)
+    (motion . moder-motion-indicator)
+    (keypad . moder-keypad-indicator)
+    (insert . moder-insert-indicator)
+    (beacon . moder-beacon-indicator))
+  "Alist of moder states -> faces")
 
-(defcustom meow-select-on-change t
+(defcustom moder-select-on-change t
   "Whether to activate region when exiting INSERT mode
- after `meow-change', `meow-change-char' and `meow-change-save'."
-  :group 'meow
+ after `moder-change', `moder-change-char' and `moder-change-save'."
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-select-on-append nil
-  "Whether to activate region when exiting INSERT mode after `meow-append'."
-  :group 'meow
+(defcustom moder-select-on-append nil
+  "Whether to activate region when exiting INSERT mode after `moder-append'."
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-select-on-insert nil
-  "Whether to activate region when exiting INSERT mode after `meow-insert'."
-  :group 'meow
+(defcustom moder-select-on-insert nil
+  "Whether to activate region when exiting INSERT mode after `moder-insert'."
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-select-on-open nil
+(defcustom moder-select-on-open nil
   "Whether to activate region when exiting INSERT mode after
-`meow-open-above', `meow-open-below',`meow-open-above-visual' and
-`meow-open-below-visual'."
-  :group 'meow
+`moder-open-above', `moder-open-below',`moder-open-above-visual' and
+`moder-open-below-visual'."
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-expand-hint-remove-delay 1.0
+(defcustom moder-expand-hint-remove-delay 1.0
   "The delay before the position hint disappears."
-  :group 'meow
+  :group 'moder
   :type 'number)
 
-(defcustom meow-next-thing-include-syntax
+(defcustom moder-next-thing-include-syntax
   '((word " _w" " _w")
     (symbol " _w" " _w"))
-  "The syntax to include selecting with meow-next-THING.
+  "The syntax to include selecting with moder-next-THING.
 
 Each item is a (THING FORWARD_SYNTAX_TO_INCLUDE BACKWARD-SYNTAX_TO_INCLUDE)."
-  :group 'meow
+  :group 'moder
   :type '(repeat (list (symbol :tag "Thing")
                        (string :tag "Forward Syntax")
                        (string :tag "Backward Syntax"))))
 
-(defcustom meow-expand-hint-counts
+(defcustom moder-expand-hint-counts
   '((word . 30)
     (line . 30)
     (block . 30)
@@ -133,16 +133,16 @@ Each item is a (THING FORWARD_SYNTAX_TO_INCLUDE BACKWARD-SYNTAX_TO_INCLUDE)."
     (till . 30)
     (symbol . 30))
   "The maximum numbers for expand hints of each type."
-  :group 'meow
+  :group 'moder
   :type '(alist :key-type (symbol :tag "Hint type")
                 :value-type (integer :tag "Value")))
 
-(defcustom meow-keypad-message t
+(defcustom moder-keypad-message t
   "Whether to log keypad messages in minibuffer."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-char-thing-table
+(defcustom moder-char-thing-table
   '((?r . round)
     (?s . square)
     (?c . curly)
@@ -156,21 +156,21 @@ Each item is a (THING FORWARD_SYNTAX_TO_INCLUDE BACKWARD-SYNTAX_TO_INCLUDE)."
     (?d . defun)
     (?. . sentence))
   "Mapping from char to thing."
-  :group 'meow
+  :group 'moder
   :type '(alist :key-type (character :tag "Char")
                 :value-type (symbol :tag "Thing")))
 
-(defcustom meow-thing-selection-directions
+(defcustom moder-thing-selection-directions
   '((inner . forward)
     (bounds . backward)
     (beginning . backward)
     (end . forward))
   "Selection directions for each thing command."
-  :group 'meow
+  :group 'moder
   :type '(alist :key-type (symbol :tag "Command")
                 :value-type (symbol :tag "Direction")))
 
-(defvar meow-word-thing 'word
+(defvar moder-word-thing 'word
   "The \\='thing\\=' used for marking and movement by words.
 
 The values is a \\='thing\\=' as understood by `thingatpt' - a symbol that will
@@ -184,7 +184,7 @@ direction depending on the sign of N. Examples of such functions include
 `forward-word', `forward-symbol' and `forward-sexp', which `thingatpt' uses for
 the `word', `symbol' and `sexp' things, respectively.")
 
-(defvar meow-symbol-thing 'symbol
+(defvar moder-symbol-thing 'symbol
   "The \\='thing\\=' used for marking and movement by symbols.
 
 The values is a \\='thing\\=' as understood by `thingatpt' - a symbol that will
@@ -198,60 +198,60 @@ direction depending on the sign of N. Examples of such functions include
 `forward-word', `forward-symbol' and `forward-sexp', which `thingatpt' uses for
 the `word', `symbol' and `sexp' things, respectively.")
 
-(defcustom meow-display-thing-help t
-  "Whether to display the help prompt for meow-inner/bounds/begin/end-of-thing."
-  :group 'meow
+(defcustom moder-display-thing-help t
+  "Whether to display the help prompt for moder-inner/bounds/begin/end-of-thing."
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-pop-or-unpop-to-mark-repeat-unpop nil
-  "Non-nil means that calling `meow-pop-or-unpop-to-mark'
+(defcustom moder-pop-or-unpop-to-mark-repeat-unpop nil
+  "Non-nil means that calling `moder-pop-or-unpop-to-mark'
 after calling it with a negative argument unpops the mark again.
 
 This variable is meant to be similar to `set-mark-command-repeat-pop'."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
 
-(defcustom meow-keypad-describe-delay
+(defcustom moder-keypad-describe-delay
   0.5
   "The delay in seconds before popup keybinding descriptions appear."
-  :group 'meow
+  :group 'moder
   :type 'number)
 
-(defcustom meow-grab-fill-commands
-  '(meow-query-replace meow-query-replace-regexp)
-  "A list of commands that meow will auto fill with grabbed content."
-  :group 'meow
+(defcustom moder-grab-fill-commands
+  '(moder-query-replace moder-query-replace-regexp)
+  "A list of commands that moder will auto fill with grabbed content."
+  :group 'moder
   :type '(repeat function))
 
-(defcustom meow-visit-collect-min-length 1
-  "Minimal length when collecting symbols for `meow-visit'."
-  :group 'meow
+(defcustom moder-visit-collect-min-length 1
+  "Minimal length when collecting symbols for `moder-visit'."
+  :group 'moder
   :type 'integer)
 
-(defcustom meow-visit-sanitize-completion t
-  "Whether let `meow-visit' display symbol regexps in a sanitized format."
-  :group 'meow
+(defcustom moder-visit-sanitize-completion t
+  "Whether let `moder-visit' display symbol regexps in a sanitized format."
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-use-clipboard nil
+(defcustom moder-use-clipboard nil
   "Whether to use system clipboard."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-use-keypad-when-execute-kbd t
+(defcustom moder-use-keypad-when-execute-kbd t
   "Whether to use KEYPAD when the result of executing kbd string is a keymap."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-use-dynamic-face-color t
+(defcustom moder-use-dynamic-face-color t
   "Whether to use dynamic calculated face color.
 
 This option will affect the color of position hint and fake region cursor."
-  :group 'meow
+  :group 'moder
   :type 'boolean)
 
-(defcustom meow-mode-state-list
+(defcustom moder-mode-state-list
   '((conf-mode . normal)
     (fundamental-mode . normal)
     (help-mode . motion)
@@ -260,11 +260,11 @@ This option will affect the color of position hint and fake region cursor."
   "A list of rules, each is (major-mode . init-state).
 
 The init-state can be any state, including custom ones."
-  :group 'meow
+  :group 'moder
   :type '(alist :key-type (sexp :tag "Major-mode")
                 :value-type (symbol :tag "Initial state")))
 
-(defcustom meow-update-display-in-macro 'except-last-macro
+(defcustom moder-update-display-in-macro 'except-last-macro
   "Whether update cursor and mode-line when executing kbd macro.
 
 Set to `nil' for no update in macro,
@@ -275,126 +275,126 @@ for no update only when executing last macro.
 
 Set to `t' to always update.
 "
-  :group 'meow
+  :group 'moder
   :type '(choice boolean
                  (const except-last-macro)))
 
-(defcustom meow-expand-selection-type 'select
+(defcustom moder-expand-selection-type 'select
   "Whether to create transient selection for expand commands."
-  :group 'meow
+  :group 'moder
   :type '(choice (const select)
                  (const expand)))
 
-(defcustom meow-keypad-leader-transparent 'motion
+(defcustom moder-keypad-leader-transparent 'motion
   "Use transparent behaivor when a bound command is not found in leader dispatch.
 
 Value `t' stands for always be transparent.
 Value `motion' stands for only be transparent in MOTION state.
 Value `normal' stands for only be transparent in NORMAL state.
 Value `nil' stands for never be transparent."
-  :group 'meow
+  :group 'moder
   :type '(choice (const t :tag "Always be transparent")
                  (const motion :tag "Transparent only in MOTION state")
                  (const normal :tag "Transparent only in NORMAL state")
                  (const nil :tag "Never be transparent")))
 
-(defcustom meow-keypad-leader-dispatch nil
+(defcustom moder-keypad-leader-dispatch nil
   "The fallback dispatching in KEYPAD when there's no translation.
 
 The value can be either a string or a keymap:
 A keymap stands for a base keymap used for further translation.
 A string stands for finding the keymap at a specified key binding.
-Nil stands for taking leader keymap from `meow-keymap-alist'."
-  :group 'meow
+Nil stands for taking leader keymap from `moder-keymap-alist'."
+  :group 'moder
   :type '(choice (string :tag "Keys")
                  (variable :tag "Keymap")
                  (const nil)))
 
-(defcustom meow-keypad-meta-prefix ?m
+(defcustom moder-keypad-meta-prefix ?m
   "The prefix represent M- in KEYPAD state."
-  :group 'meow
+  :group 'moder
   :type 'character)
 
-(defcustom meow-keypad-ctrl-meta-prefix ?g
+(defcustom moder-keypad-ctrl-meta-prefix ?g
   "The prefix represent C-M- in KEYPAD state."
-  :group 'meow
+  :group 'moder
   :type 'character)
 
-(defcustom meow-keypad-literal-prefix 32
+(defcustom moder-keypad-literal-prefix 32
   "The prefix represent no modifier in KEYPAD state."
-  :group 'meow
+  :group 'moder
   :type 'character)
 
-(defcustom meow-keypad-start-keys
+(defcustom moder-keypad-start-keys
   '((?c . ?c)
     (?h . ?h)
     (?x . ?x))
   "Alist of keys to begin keypad translation. When a key char is pressed,
 it's corresponding value is appended to C- and the user is
 prompted to finish the command."
-  :group 'meow
+  :group 'moder
   :type '(alist :key-type (character :tag "From")
                 :value-type (character :tag "To")))
 
-(defcustom meow-goto-line-function nil
-  "Function to use in `meow-goto-line'.
+(defcustom moder-goto-line-function nil
+  "Function to use in `moder-goto-line'.
 
 Nil means find the command by key binding."
-  :group 'meow
+  :group 'moder
   :type '(choice function (const nil)))
 
-(defvar meow-state-mode-alist
-  '((normal . meow-normal-mode)
-    (insert . meow-insert-mode)
-    (keypad . meow-keypad-mode)
-    (motion . meow-motion-mode)
-    (beacon . meow-beacon-mode))
-  "Alist of meow states -> modes")
+(defvar moder-state-mode-alist
+  '((normal . moder-normal-mode)
+    (insert . moder-insert-mode)
+    (keypad . moder-keypad-mode)
+    (motion . moder-motion-mode)
+    (beacon . moder-beacon-mode))
+  "Alist of moder states -> modes")
 
-(defvar meow-update-cursor-functions-alist
-  '((meow--cursor-null-p . meow--update-cursor-default)
-    (minibufferp         . meow--update-cursor-default)
-    (meow-insert-mode-p  . meow--update-cursor-insert)
-    (meow-normal-mode-p  . meow--update-cursor-normal)
-    (meow-motion-mode-p  . meow--update-cursor-motion)
-    (meow-keypad-mode-p  . meow--update-cursor-motion)
-    (meow-beacon-mode-p  . meow--update-cursor-beacon)
-    ((lambda () t)       . meow--update-cursor-default))
+(defvar moder-update-cursor-functions-alist
+  '((moder--cursor-null-p . moder--update-cursor-default)
+    (minibufferp         . moder--update-cursor-default)
+    (moder-insert-mode-p  . moder--update-cursor-insert)
+    (moder-normal-mode-p  . moder--update-cursor-normal)
+    (moder-motion-mode-p  . moder--update-cursor-motion)
+    (moder-keypad-mode-p  . moder--update-cursor-motion)
+    (moder-beacon-mode-p  . moder--update-cursor-beacon)
+    ((lambda () t)       . moder--update-cursor-default))
   "Alist of predicates to functions that set cursor type and color.")
 
-(defvar meow-keypad-describe-keymap-function 'meow-describe-keymap
+(defvar moder-keypad-describe-keymap-function 'moder-describe-keymap
   "The function used to describe (KEYMAP) during keypad execution.
 
 To integrate WhichKey-like features with keypad.
 Currently, keypad is not working well with which-key,
-so Meow ships a default `meow-describe-keymap'.
-Use (setq meow-keypad-describe-keymap-function \\='nil) to disable popup.")
+so Moder ships a default `moder-describe-keymap'.
+Use (setq moder-keypad-describe-keymap-function \\='nil) to disable popup.")
 
-(defvar meow-keypad-clear-describe-keymap-function nil
-  "The function used to clear the effect of `meow-keypad-describe-keymap-function'.")
+(defvar moder-keypad-clear-describe-keymap-function nil
+  "The function used to clear the effect of `moder-keypad-describe-keymap-function'.")
 
-(defvar meow-keypad-get-title-function 'meow-keypad-get-title
+(defvar moder-keypad-get-title-function 'moder-keypad-get-title
   "The function used to get the title of a keymap or command.")
 
 ;; Cursor types
 
-(defvar meow-cursor-type-default 'box)
-(defvar meow-cursor-type-normal 'box)
-(defvar meow-cursor-type-motion 'box)
-(defvar meow-cursor-type-beacon 'box)
-(defvar meow-cursor-type-region-cursor '(bar . 2))
-(defvar meow-cursor-type-insert '(bar . 2))
-(defvar meow-cursor-type-keypad 'hollow)
+(defvar moder-cursor-type-default 'box)
+(defvar moder-cursor-type-normal 'box)
+(defvar moder-cursor-type-motion 'box)
+(defvar moder-cursor-type-beacon 'box)
+(defvar moder-cursor-type-region-cursor '(bar . 2))
+(defvar moder-cursor-type-insert '(bar . 2))
+(defvar moder-cursor-type-keypad 'hollow)
 
 ;; Keypad states
 
-(defvar meow--keypad-keys nil)
-(defvar meow--keypad-previous-state nil)
+(defvar moder--keypad-keys nil)
+(defvar moder--keypad-previous-state nil)
 
-(defvar meow--prefix-arg nil)
-(defvar meow--use-literal nil)
-(defvar meow--use-meta nil)
-(defvar meow--use-both nil)
+(defvar moder--prefix-arg nil)
+(defvar moder--use-literal nil)
+(defvar moder--use-meta nil)
+(defvar moder--use-both nil)
 
 ;;; KBD Macros
 ;; We use kbd macro instead of direct command/function invocation,
@@ -402,229 +402,229 @@ Use (setq meow-keypad-describe-keymap-function \\='nil) to disable popup.")
 ;;
 ;; The benefit is an out-of-box integration support for other plugins, like: paredit.
 ;;
-;; NOTE: meow assumes that the user does not modify vanilla Emacs keybindings, otherwise extra complexity will be introduced.
+;; NOTE: moder assumes that the user does not modify vanilla Emacs keybindings, otherwise extra complexity will be introduced.
 
-(defvar meow--kbd-undo "C-/"
+(defvar moder--kbd-undo "C-/"
   "KBD macro for command `undo'.")
 
-(defvar meow--kbd-backward-char "C-b"
+(defvar moder--kbd-backward-char "C-b"
   "KBD macro for command `backward-char'.")
 
-(defvar meow--kbd-forward-char "C-f"
+(defvar moder--kbd-forward-char "C-f"
   "KBD macro for command `forward-char'.")
 
-(defvar meow--kbd-keyboard-quit "C-g"
+(defvar moder--kbd-keyboard-quit "C-g"
   "KBD macro for command `keyboard-quit'.")
 
-(defvar meow--kbd-find-ref "M-."
+(defvar moder--kbd-find-ref "M-."
   "KBD macro for command `xref-find-definitions'.")
 
-(defvar meow--kbd-pop-marker "M-,"
+(defvar moder--kbd-pop-marker "M-,"
   "KBD macro for command `xref-pop-marker-stack'.")
 
-(defvar meow--kbd-comment "M-;"
+(defvar moder--kbd-comment "M-;"
   "KBD macro for comment command.")
 
-(defvar meow--kbd-kill-line "C-k"
+(defvar moder--kbd-kill-line "C-k"
   "KBD macro for command `kill-line'.")
 
-(defvar meow--kbd-kill-whole-line "<C-S-backspace>"
+(defvar moder--kbd-kill-whole-line "<C-S-backspace>"
   "KBD macro for command `kill-whole-line'.")
 
-(defvar meow--kbd-delete-char "C-d"
+(defvar moder--kbd-delete-char "C-d"
   "KBD macro for command `delete-char'.")
 
-(defvar meow--kbd-yank "C-y"
+(defvar moder--kbd-yank "C-y"
   "KBD macro for command `yank'.")
 
-(defvar meow--kbd-yank-pop "M-y"
+(defvar moder--kbd-yank-pop "M-y"
   "KBD macro for command `yank-pop'.")
 
-(defvar meow--kbd-kill-ring-save "M-w"
+(defvar moder--kbd-kill-ring-save "M-w"
   "KBD macro for command `kill-ring-save'.")
 
-(defvar meow--kbd-kill-region "C-w"
+(defvar moder--kbd-kill-region "C-w"
   "KBD macro for command `kill-region'.")
 
-(defvar meow--kbd-exchange-point-and-mark "C-x C-x"
+(defvar moder--kbd-exchange-point-and-mark "C-x C-x"
   "KBD macro for command `exchange-point-and-mark'.")
 
-(defvar meow--kbd-back-to-indentation "M-m"
+(defvar moder--kbd-back-to-indentation "M-m"
   "KBD macro for command `back-to-indentation'.")
 
-(defvar meow--kbd-indent-region "C-M-\\"
+(defvar moder--kbd-indent-region "C-M-\\"
   "KBD macro for command `indent-region'.")
 
-(defvar meow--kbd-delete-indentation "M-^"
+(defvar moder--kbd-delete-indentation "M-^"
   "KBD macro for command `delete-indentation'.")
 
-(defvar meow--kbd-forward-slurp "C-)"
+(defvar moder--kbd-forward-slurp "C-)"
   "KBD macro for command forward slurp.")
 
-(defvar meow--kbd-backward-slurp "C-("
+(defvar moder--kbd-backward-slurp "C-("
   "KBD macro for command backward slurp.")
 
-(defvar meow--kbd-forward-barf "C-}"
+(defvar moder--kbd-forward-barf "C-}"
   "KBD macro for command forward barf.")
 
-(defvar meow--kbd-backward-barf "C-{"
+(defvar moder--kbd-backward-barf "C-{"
   "KBD macro for command backward barf.")
 
-(defvar meow--kbd-scoll-up "C-v"
+(defvar moder--kbd-scoll-up "C-v"
   "KBD macro for command `scroll-up'.")
 
-(defvar meow--kbd-scoll-down "M-v"
+(defvar moder--kbd-scoll-down "M-v"
   "KBD macro for command `scroll-down'.")
 
-(defvar meow--kbd-just-one-space "M-SPC"
+(defvar moder--kbd-just-one-space "M-SPC"
   "KBD macro for command `just-one-space.")
 
-(defvar meow--kbd-wrap-round "M-("
+(defvar moder--kbd-wrap-round "M-("
   "KBD macro for command wrap round.")
 
-(defvar meow--kbd-wrap-square "M-["
+(defvar moder--kbd-wrap-square "M-["
   "KBD macro for command wrap square.")
 
-(defvar meow--kbd-wrap-curly "M-{"
+(defvar moder--kbd-wrap-curly "M-{"
   "KBD macro for command wrap curly.")
 
-(defvar meow--kbd-wrap-string "M-\""
+(defvar moder--kbd-wrap-string "M-\""
   "KBD macro for command wrap string.")
 
-(defvar meow--kbd-excute-extended-command "M-x"
+(defvar moder--kbd-excute-extended-command "M-x"
   "KBD macro for command `execute-extended-command'.")
 
-(defvar meow--kbd-transpose-sexp "C-M-t"
+(defvar moder--kbd-transpose-sexp "C-M-t"
   "KBD macro for command transpose sexp.")
 
-(defvar meow--kbd-split-sexp "M-S"
+(defvar moder--kbd-split-sexp "M-S"
   "KBD macro for command split sexp.")
 
-(defvar meow--kbd-splice-sexp "M-s"
+(defvar moder--kbd-splice-sexp "M-s"
   "KBD macro for command splice sexp.")
 
-(defvar meow--kbd-raise-sexp "M-r"
+(defvar moder--kbd-raise-sexp "M-r"
   "KBD macro for command raise sexp.")
 
-(defvar meow--kbd-join-sexp "M-J"
+(defvar moder--kbd-join-sexp "M-J"
   "KBD macro for command join sexp.")
 
-(defvar meow--kbd-eval-last-exp "C-x C-e"
+(defvar moder--kbd-eval-last-exp "C-x C-e"
   "KBD macro for command eval last exp.")
 
-(defvar meow--kbd-query-replace-regexp "C-M-%"
+(defvar moder--kbd-query-replace-regexp "C-M-%"
   "KBD macro for command `query-replace-regexp'.")
 
-(defvar meow--kbd-query-replace "M-%"
+(defvar moder--kbd-query-replace "M-%"
   "KBD macro for command `query-replace'.")
 
-(defvar meow--kbd-forward-line "C-n"
+(defvar moder--kbd-forward-line "C-n"
   "KBD macro for command `forward-line'.")
 
-(defvar meow--kbd-backward-line "C-p"
+(defvar moder--kbd-backward-line "C-p"
   "KBD macro for command `backward-line'.")
 
-(defvar meow--kbd-search-forward-regexp "C-M-s"
+(defvar moder--kbd-search-forward-regexp "C-M-s"
   "KBD macro for command `search-forward-regexp'.")
 
-(defvar meow--kbd-search-backward-regexp "C-M-r"
+(defvar moder--kbd-search-backward-regexp "C-M-r"
   "KBD macro for command `search-backward-regexp'.")
 
-(defvar meow--kbd-goto-line "M-g g"
+(defvar moder--kbd-goto-line "M-g g"
   "KBD macro for command `goto-line'.")
 
-(defvar meow--delete-region-function #'delete-region
+(defvar moder--delete-region-function #'delete-region
   "The function used to delete the selection.
 
 Allows support of modes that define their own equivalent of
 `delete-region'.")
 
-(defvar meow--insert-function #'insert
+(defvar moder--insert-function #'insert
   "The function used to insert text in Normal state.
 
 Allows support of modes that define their own equivalent of `insert'.")
 
-(defvar-local meow--indicator nil
+(defvar-local moder--indicator nil
   "Indicator for current buffer.")
 
-(defvar-local meow--selection nil
+(defvar-local moder--selection nil
   "Current selection.
 
 Has a structure of (sel-type point mark).")
 
-(defvar meow--kbd-pop-global-mark "C-x C-@"
+(defvar moder--kbd-pop-global-mark "C-x C-@"
   "KBD macro for command `pop-global-mark'.")
 
 ;;; Hooks
 
-(defvar meow-switch-state-hook nil
+(defvar moder-switch-state-hook nil
   "Hooks run when switching state.")
 
-(defvar meow-insert-enter-hook nil
+(defvar moder-insert-enter-hook nil
   "Hooks run when enter insert state.")
 
-(defvar meow-insert-exit-hook nil
+(defvar moder-insert-exit-hook nil
   "Hooks run when exit insert state.")
 
 ;;; Internal variables
 
-(defvar-local meow--current-state 'normal
+(defvar-local moder--current-state 'normal
   "A symbol represent current state.")
 
-(defvar-local meow--end-kmacro-on-exit nil
+(defvar-local moder--end-kmacro-on-exit nil
   "Whether we end kmacro recording when exit insert state.")
 
-(defvar-local meow--temp-normal nil
+(defvar-local moder--temp-normal nil
   "Whether we are in temporary normal state. ")
 
-(defvar meow--selection-history nil
+(defvar moder--selection-history nil
   "The history of selections.")
 
-(defvar meow--expand-nav-function nil
+(defvar moder--expand-nav-function nil
   "Current expand nav function.")
 
-(defvar meow--last-find nil
+(defvar moder--last-find nil
   "The char for last find command.")
 
-(defvar meow--last-till nil
+(defvar moder--last-till nil
   "The char for last till command.")
 
-(defvar meow--visual-command nil
+(defvar moder--visual-command nil
   "Current command to highlight.")
 
-(defvar meow--keypad-this-command nil
+(defvar moder--keypad-this-command nil
   "Command name for current keypad execution.")
 
-(defvar meow--expanding-p nil
+(defvar moder--expanding-p nil
   "Whether we are expanding.")
 
-(defvar meow--keypad-keymap-description-activated nil
+(defvar moder--keypad-keymap-description-activated nil
   "Whether KEYPAD keymap description is already activated.")
 
-(defvar meow--keypad-help nil
+(defvar moder--keypad-help nil
   "If keypad in help mode.")
 
-(defvar meow--keypad-base-keymap nil
+(defvar moder--keypad-base-keymap nil
   "The keymap used to lookup keys in KEYPAD state.
 
 Nil means to lookup in top-level.")
 
-(defvar meow--beacon-backup-hl-line
+(defvar moder--beacon-backup-hl-line
   nil
   "Whether hl-line is enabled by user.")
 
-(defvar meow--beacon-defining-kbd-macro nil
+(defvar moder--beacon-defining-kbd-macro nil
   "Whether we are defining kbd macro at BEACON state.
 
 The value can be nil, quick or record.")
 
-(defvar-local meow--insert-pos nil
+(defvar-local moder--insert-pos nil
   "The position where we enter INSERT state.")
 
-(defvar-local meow--insert-activate-mark nil
+(defvar-local moder--insert-activate-mark nil
   "Whether we should activate the selection after exiting INSERT state.")
 
-(defvar meow-full-width-number-position-chars
+(defvar moder-full-width-number-position-chars
   '((0 . "０")
     (1 . "１")
     (2 . "２")
@@ -637,105 +637,105 @@ The value can be nil, quick or record.")
     (9 . "９"))
   "Map number to full-width character.")
 
-(defvar meow-cheatsheet-ellipsis "…"
+(defvar moder-cheatsheet-ellipsis "…"
   "Ellipsis character used in cheatsheet.")
 
-(defvar meow-command-to-short-name-list
-  '((meow-expand-0 . "ex →0")
-    (meow-expand-1 . "ex →1")
-    (meow-expand-2 . "ex →2")
-    (meow-expand-3 . "ex →3")
-    (meow-expand-4 . "ex →4")
-    (meow-expand-5 . "ex →5")
-    (meow-expand-6 . "ex →6")
-    (meow-expand-7 . "ex →7")
-    (meow-expand-8 . "ex →8")
-    (meow-expand-9 . "ex →9")
+(defvar moder-command-to-short-name-list
+  '((moder-expand-0 . "ex →0")
+    (moder-expand-1 . "ex →1")
+    (moder-expand-2 . "ex →2")
+    (moder-expand-3 . "ex →3")
+    (moder-expand-4 . "ex →4")
+    (moder-expand-5 . "ex →5")
+    (moder-expand-6 . "ex →6")
+    (moder-expand-7 . "ex →7")
+    (moder-expand-8 . "ex →8")
+    (moder-expand-9 . "ex →9")
     (digit-argument . "num-arg")
-    (meow-inner-of-thing . "←thing→")
-    (meow-bounds-of-thing . "[thing]")
-    (meow-beginning-of-thing . "←thing")
-    (meow-end-of-thing . "thing→")
-    (meow-reverse . "reverse")
-    (meow-prev . "↑")
-    (meow-prev-expand . "ex ↑")
-    (meow-next . "↓")
-    (meow-next-expand . "ex ↓")
-    (meow-head . "←")
-    (meow-head-expand . "ex ←")
-    (meow-tail . "→")
-    (meow-tail-expand . "ex →")
-    (meow-left . "←")
-    (meow-left-expand . "ex ←")
-    (meow-right . "→")
-    (meow-right-expand . "ex →")
-    (meow-yank . "yank")
-    (meow-find . "find")
-    (meow-find-expand . "ex find")
-    (meow-till . "till")
-    (meow-till-expand . "ex till")
-    (meow-keyboard-quit . "C-g")
-    (meow-cancel-selection . "quit sel")
-    (meow-change . "chg")
-    (meow-change-save . "chg-save")
-    (meow-replace . "rep")
-    (meow-replace-save . "rep-save")
-    (meow-append . "append")
-    (meow-open-below . "open ↓")
-    (meow-insert . "insert")
-    (meow-open-above . "open ↑")
-    (meow-block . "block")
-    (meow-to-block "→block")
-    (meow-line . "line")
-    (meow-delete . "del")
-    (meow-search . "search")
-    (meow-undo . "undo")
-    (meow-undo-in-selection . "undo-sel")
-    (meow-pop-search . "popsearch")
+    (moder-inner-of-thing . "←thing→")
+    (moder-bounds-of-thing . "[thing]")
+    (moder-beginning-of-thing . "←thing")
+    (moder-end-of-thing . "thing→")
+    (moder-reverse . "reverse")
+    (moder-prev . "↑")
+    (moder-prev-expand . "ex ↑")
+    (moder-next . "↓")
+    (moder-next-expand . "ex ↓")
+    (moder-head . "←")
+    (moder-head-expand . "ex ←")
+    (moder-tail . "→")
+    (moder-tail-expand . "ex →")
+    (moder-left . "←")
+    (moder-left-expand . "ex ←")
+    (moder-right . "→")
+    (moder-right-expand . "ex →")
+    (moder-yank . "yank")
+    (moder-find . "find")
+    (moder-find-expand . "ex find")
+    (moder-till . "till")
+    (moder-till-expand . "ex till")
+    (moder-keyboard-quit . "C-g")
+    (moder-cancel-selection . "quit sel")
+    (moder-change . "chg")
+    (moder-change-save . "chg-save")
+    (moder-replace . "rep")
+    (moder-replace-save . "rep-save")
+    (moder-append . "append")
+    (moder-open-below . "open ↓")
+    (moder-insert . "insert")
+    (moder-open-above . "open ↑")
+    (moder-block . "block")
+    (moder-to-block "→block")
+    (moder-line . "line")
+    (moder-delete . "del")
+    (moder-search . "search")
+    (moder-undo . "undo")
+    (moder-undo-in-selection . "undo-sel")
+    (moder-pop-search . "popsearch")
     (negative-argument . "neg-arg")
-    (meow-quit . "quit")
-    (meow-join . "join")
-    (meow-kill . "kill")
-    (meow-save . "save")
-    (meow-next-word . "word→")
-    (meow-next-symbol . "sym→")
-    (meow-back-word . "←word")
-    (meow-back-symbol . "←sym")
-    (meow-pop-all-selection . "pop-sels")
-    (meow-pop-selection . "pop-sel")
-    (meow-mark-word . "←word→")
-    (meow-mark-symbol . "←sym→")
-    (meow-visit . "visit")
-    (meow-kmacro-lines . "macro-ln")
-    (meow-kmacro-matches . "macro-re")
-    (meow-end-or-call-kmacro . "callmacro")
-    (meow-cheatsheet . "help")
-    (meow-keypad-describe-key . "desc-key")
-    (meow-backspace . "backspace")
-    (meow-pop-to-mark . "<-mark")
-    (meow-unpop-to-mark . "mark->"))
+    (moder-quit . "quit")
+    (moder-join . "join")
+    (moder-kill . "kill")
+    (moder-save . "save")
+    (moder-next-word . "word→")
+    (moder-next-symbol . "sym→")
+    (moder-back-word . "←word")
+    (moder-back-symbol . "←sym")
+    (moder-pop-all-selection . "pop-sels")
+    (moder-pop-selection . "pop-sel")
+    (moder-mark-word . "←word→")
+    (moder-mark-symbol . "←sym→")
+    (moder-visit . "visit")
+    (moder-kmacro-lines . "macro-ln")
+    (moder-kmacro-matches . "macro-re")
+    (moder-end-or-call-kmacro . "callmacro")
+    (moder-cheatsheet . "help")
+    (moder-keypad-describe-key . "desc-key")
+    (moder-backspace . "backspace")
+    (moder-pop-to-mark . "<-mark")
+    (moder-unpop-to-mark . "mark->"))
   "A list of (command . short-name)")
 
-(defcustom meow-replace-pop-command-start-indexes
-  '((meow-replace . 1)
-    (meow-replace-char . 1)
-    (meow-replace-save . 2))
-  "Alist of commands and their starting indices for use by `meow-replace-pop'.
+(defcustom moder-replace-pop-command-start-indexes
+  '((moder-replace . 1)
+    (moder-replace-char . 1)
+    (moder-replace-save . 2))
+  "Alist of commands and their starting indices for use by `moder-replace-pop'.
 
-If `meow-replace-pop' is run and the previous command is not
-`meow-replace-pop' or a command which is present in this alist,
-`meow-replace-pop' signals an error."
+If `moder-replace-pop' is run and the previous command is not
+`moder-replace-pop' or a command which is present in this alist,
+`moder-replace-pop' signals an error."
   :type '(alist :key-type function :value-type natnum))
 
-(defcustom meow-keypad-message-prefix "Keypad: "
+(defcustom moder-keypad-message-prefix "Keypad: "
   "The prefix string for keypad messages."
   :type 'string)
 
-(defvar meow--replace-pop-index nil
+(defvar moder--replace-pop-index nil
   "The index of the previous replacement in the `kill-ring'.
-See also the command `meow-replace-pop'.")
+See also the command `moder-replace-pop'.")
 
-(defvar meow--replace-start-marker (make-marker)
+(defvar moder--replace-start-marker (make-marker)
   "The beginning of the replaced text.
 
 This marker stays before any text inserted at the location, to
@@ -744,19 +744,19 @@ the replacement text.")
 
 ;;; Backup variables
 
-(defvar meow--backup-var-delete-activae-region nil
+(defvar moder--backup-var-delete-activae-region nil
   "The backup for `delete-active-region'.
 
-It is used to restore its value when disable `meow'.")
+It is used to restore its value when disable `moder'.")
 
-(defvar meow--backup-redisplay-highlight-region-function
+(defvar moder--backup-redisplay-highlight-region-function
   redisplay-highlight-region-function)
 
-(defvar meow--backup-redisplay-unhighlight-region-function
+(defvar moder--backup-redisplay-unhighlight-region-function
   redisplay-unhighlight-region-function)
 
-(defvar meow--backup-var-delete-activate-region
+(defvar moder--backup-var-delete-activate-region
   delete-active-region)
 
-(provide 'meow-var)
-;;; meow-var.el ends here
+(provide 'moder-var)
+;;; moder-var.el ends here

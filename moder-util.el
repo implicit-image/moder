@@ -1,4 +1,4 @@
-;;; meow-util.el --- Utilities for Meow  -*- lexical-binding: t; -*-
+;;; moder-util.el --- Utilities for Moder  -*- lexical-binding: t; -*-
 
 ;; This file is not part of GNU Emacs.
 
@@ -18,7 +18,7 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-;; Utilities for Meow.
+;; Utilities for Moder.
 
 ;;; Code:
 
@@ -27,31 +27,31 @@
 (require 'seq)
 (require 'color)
 
-(require 'meow-var)
-(require 'meow-keymap)
-(require 'meow-face)
+(require 'moder-var)
+(require 'moder-keymap)
+(require 'moder-face)
 
 ;; Modes
 
-(defvar meow-normal-mode)
+(defvar moder-normal-mode)
 
-(declare-function meow--remove-match-highlights "meow-visual")
-(declare-function meow--remove-expand-highlights "meow-visual")
-(declare-function meow--remove-search-highlight "meow-visual")
-(declare-function meow-insert-mode "meow-core")
-(declare-function meow-motion-mode "meow-core")
-(declare-function meow-normal-mode "meow-core")
-(declare-function meow-keypad-mode "meow-core")
-(declare-function meow-beacon-mode "meow-core")
-(declare-function meow-mode "meow-core")
-(declare-function meow--keypad-format-keys "meow-keypad")
-(declare-function meow--keypad-format-prefix "meow-keypad")
-(declare-function meow-minibuffer-quit "meow-command")
-(declare-function meow--enable "meow-core")
-(declare-function meow--beacon-apply-command "meow-beacon")
-(declare-function meow-keypad-start-with "meow-keypad")
+(declare-function moder--remove-match-highlights "moder-visual")
+(declare-function moder--remove-expand-highlights "moder-visual")
+(declare-function moder--remove-search-highlight "moder-visual")
+(declare-function moder-insert-mode "moder-core")
+(declare-function moder-motion-mode "moder-core")
+(declare-function moder-normal-mode "moder-core")
+(declare-function moder-keypad-mode "moder-core")
+(declare-function moder-beacon-mode "moder-core")
+(declare-function moder-mode "moder-core")
+(declare-function moder--keypad-format-keys "moder-keypad")
+(declare-function moder--keypad-format-prefix "moder-keypad")
+(declare-function moder-minibuffer-quit "moder-command")
+(declare-function moder--enable "moder-core")
+(declare-function moder--beacon-apply-command "moder-beacon")
+(declare-function moder-keypad-start-with "moder-keypad")
 
-(defun meow--execute-kbd-macro (kbd-macro-or-defun)
+(defun moder--execute-kbd-macro (kbd-macro-or-defun)
   "Execute the function bound to `KBD-MACRO-OR-DEFUN'. If `KBD-MACRO-OR-DEFUN' is a string,
 instead execute the keyboard macro it corresponds to."
   (when-let* ((ret (if (and (symbolp kbd-macro-or-defun) (fboundp kbd-macro-or-defun))
@@ -62,38 +62,38 @@ instead execute the keyboard macro it corresponds to."
       (setq this-command ret)
       (call-interactively ret))
 
-     ((and (not meow-use-keypad-when-execute-kbd) (keymapp ret))
+     ((and (not moder-use-keypad-when-execute-kbd) (keymapp ret))
       (set-transient-map ret nil nil))
 
-     ((and meow-use-keypad-when-execute-kbd (keymapp ret))
-      (meow-keypad-start-with kbd-macro-or-defun)))))
+     ((and moder-use-keypad-when-execute-kbd (keymapp ret))
+      (moder-keypad-start-with kbd-macro-or-defun)))))
 
-(defun meow-insert-mode-p ()
+(defun moder-insert-mode-p ()
   "Whether insert mode is enabled."
-  (bound-and-true-p meow-insert-mode))
+  (bound-and-true-p moder-insert-mode))
 
-(defun meow-motion-mode-p ()
+(defun moder-motion-mode-p ()
   "Whether motion mode is enabled."
-  (bound-and-true-p meow-motion-mode))
+  (bound-and-true-p moder-motion-mode))
 
-(defun meow-normal-mode-p ()
+(defun moder-normal-mode-p ()
   "Whether normal mode is enabled."
-  (bound-and-true-p meow-normal-mode))
+  (bound-and-true-p moder-normal-mode))
 
-(defun meow-keypad-mode-p ()
+(defun moder-keypad-mode-p ()
   "Whether keypad mode is enabled."
-  (bound-and-true-p meow-keypad-mode))
+  (bound-and-true-p moder-keypad-mode))
 
-(defun meow-beacon-mode-p ()
+(defun moder-beacon-mode-p ()
   "Whether keypad mode is enabled."
-  (bound-and-true-p meow-beacon-mode))
+  (bound-and-true-p moder-beacon-mode))
 
-(defun meow--disable-current-state ()
-  (when meow--current-state
-    (funcall (alist-get meow--current-state meow-state-mode-alist) -1)
-    (setq meow--current-state nil)))
+(defun moder--disable-current-state ()
+  (when moder--current-state
+    (funcall (alist-get moder--current-state moder-state-mode-alist) -1)
+    (setq moder--current-state nil)))
 
-(defun meow--read-cursor-face-color (face)
+(defun moder--read-cursor-face-color (face)
   "Read cursor color from face."
   (let ((f (face-attribute face :inherit)))
     (if (equal 'unspecified f)
@@ -101,9 +101,9 @@ instead execute the keyboard macro it corresponds to."
           (if (equal 'unspecified color)
               (face-attribute 'default :foreground)
             color))
-      (meow--read-cursor-face-color f))))
+      (moder--read-cursor-face-color f))))
 
-(defun meow--set-cursor-type (type)
+(defun moder--set-cursor-type (type)
   (if (display-graphic-p)
       (setq cursor-type type)
     (let* ((shape (or (car-safe type) type))
@@ -112,86 +112,86 @@ instead execute the keyboard macro it corresponds to."
                         (t "2"))))
       (send-string-to-terminal (concat "\e[" param " q")))))
 
-(defun meow--set-cursor-color (face)
+(defun moder--set-cursor-color (face)
   "Set cursor color by face."
-  (let ((color (meow--read-cursor-face-color face)))
+  (let ((color (moder--read-cursor-face-color face)))
     (unless (equal (frame-parameter nil 'cursor-color) color)
       (set-cursor-color color))))
 
-(defun meow--update-cursor-default ()
+(defun moder--update-cursor-default ()
   "Set default cursor type and color"
-  (meow--set-cursor-type meow-cursor-type-default)
-  (meow--set-cursor-color 'meow-unknown-cursor))
+  (moder--set-cursor-type moder-cursor-type-default)
+  (moder--set-cursor-color 'moder-unknown-cursor))
 
-(defun meow--update-cursor-insert ()
+(defun moder--update-cursor-insert ()
   "Set insert cursor type and color"
-  (meow--set-cursor-type meow-cursor-type-insert)
-  (meow--set-cursor-color 'meow-insert-cursor))
+  (moder--set-cursor-type moder-cursor-type-insert)
+  (moder--set-cursor-color 'moder-insert-cursor))
 
-(defun meow--update-cursor-normal ()
+(defun moder--update-cursor-normal ()
   "Set normal cursor type and color"
-  (if meow-use-cursor-position-hack
+  (if moder-use-cursor-position-hack
       (unless (use-region-p)
-        (meow--set-cursor-type meow-cursor-type-normal))
-    (meow--set-cursor-type meow-cursor-type-normal))
-  (meow--set-cursor-color 'meow-normal-cursor))
+        (moder--set-cursor-type moder-cursor-type-normal))
+    (moder--set-cursor-type moder-cursor-type-normal))
+  (moder--set-cursor-color 'moder-normal-cursor))
 
-(defun meow--update-cursor-motion ()
+(defun moder--update-cursor-motion ()
   "Set motion cursor type and color"
-  (meow--set-cursor-type meow-cursor-type-motion)
-  (meow--set-cursor-color 'meow-motion-cursor))
+  (moder--set-cursor-type moder-cursor-type-motion)
+  (moder--set-cursor-color 'moder-motion-cursor))
 
-(defun meow--update-cursor-beacon ()
+(defun moder--update-cursor-beacon ()
   "Set beacon cursor type and color"
-  (meow--set-cursor-type meow-cursor-type-beacon)
-  (meow--set-cursor-color 'meow-beacon-cursor))
+  (moder--set-cursor-type moder-cursor-type-beacon)
+  (moder--set-cursor-color 'moder-beacon-cursor))
 
-(defun meow--cursor-null-p ()
+(defun moder--cursor-null-p ()
   "Check if cursor-type is null"
   (null cursor-type))
 
-(defun meow--update-cursor ()
+(defun moder--update-cursor ()
   "Update cursor type according to the current state.
 
-This uses the variable meow-update-cursor-functions-alist, finds the first
+This uses the variable moder-update-cursor-functions-alist, finds the first
 item in which the car evaluates to true, and runs the cdr. The last item's car
 in the list will always evaluate to true."
   (with-current-buffer (window-buffer)
-    (thread-last meow-update-cursor-functions-alist
-      (cl-remove-if-not (lambda (el) (funcall (car el))))
-      (cdar)
-      (funcall))))
+    (thread-last moder-update-cursor-functions-alist
+                 (cl-remove-if-not (lambda (el) (funcall (car el))))
+                 (cdar)
+                 (funcall))))
 
-(defun meow--get-state-name (state)
+(defun moder--get-state-name (state)
   "Get the name of the current state.
 
-Looks up the state in meow-replace-state-name-list"
-  (alist-get state meow-replace-state-name-list))
+Looks up the state in moder-replace-state-name-list"
+  (alist-get state moder-replace-state-name-list))
 
-(defun meow--render-indicator ()
+(defun moder--render-indicator ()
   "Renders a short indicator based on the current state."
-  (when (bound-and-true-p meow-global-mode)
-    (let* ((state (meow--current-state))
-           (state-name (meow--get-state-name state))
-           (indicator-face (alist-get state meow-indicator-face-alist)))
+  (when (bound-and-true-p moder-global-mode)
+    (let* ((state (moder--current-state))
+           (state-name (moder--get-state-name state))
+           (indicator-face (alist-get state moder-indicator-face-alist)))
       (if state-name
           (propertize
            (format " %s " state-name)
            'face indicator-face)
         ""))))
 
-(defun meow--update-indicator ()
-  (let ((indicator (meow--render-indicator)))
-    (setq-local meow--indicator indicator)))
+(defun moder--update-indicator ()
+  (let ((indicator (moder--render-indicator)))
+    (setq-local moder--indicator indicator)))
 
-(defun meow--state-p (state)
-  (funcall (intern (concat "meow-" (symbol-name state) "-mode-p"))))
+(defun moder--state-p (state)
+  (funcall (intern (concat "moder-" (symbol-name state) "-mode-p"))))
 
-(defun meow--current-state ()
-  meow--current-state)
+(defun moder--current-state ()
+  moder--current-state)
 
-(defun meow--should-update-display-p ()
-  (cl-case meow-update-display-in-macro
+(defun moder--should-update-display-p ()
+  (cl-case moder-update-display-in-macro
     ((t) t)
     ((except-last-macro)
      (or (null executing-kbd-macro)
@@ -199,97 +199,97 @@ Looks up the state in meow-replace-state-name-list"
     ((nil)
      (null executing-kbd-macro))))
 
-(defun meow-update-display ()
-  (when (meow--should-update-display-p)
-    (meow--update-indicator)
-    (meow--update-cursor)))
+(defun moder-update-display ()
+  (when (moder--should-update-display-p)
+    (moder--update-indicator)
+    (moder--update-cursor)))
 
-(defun meow--switch-state (state &optional no-hook)
-  "Switch to STATE execute `meow-switch-state-hook' unless NO-HOOK is non-nil."
-  (unless (eq state (meow--current-state))
-    (let ((mode (alist-get state meow-state-mode-alist)))
+(defun moder--switch-state (state &optional no-hook)
+  "Switch to STATE execute `moder-switch-state-hook' unless NO-HOOK is non-nil."
+  (unless (eq state (moder--current-state))
+    (let ((mode (alist-get state moder-state-mode-alist)))
       (funcall mode 1))
     (unless (bound-and-true-p no-hook)
-      (run-hook-with-args 'meow-switch-state-hook state))))
+      (run-hook-with-args 'moder-switch-state-hook state))))
 
-(defvar meow--beacon-apply-command "meow-beacon")
+(defvar moder--beacon-apply-command "moder-beacon")
 
-(defun meow--exit-keypad-state ()
+(defun moder--exit-keypad-state ()
   "Exit keypad state."
-  (meow-keypad-mode -1)
-  (when (and (eq 'beacon meow--keypad-previous-state)
-             meow--current-state)
-    (meow--beacon-apply-command meow--keypad-this-command))
-  (when meow--keypad-previous-state
-    (meow--switch-state meow--keypad-previous-state)))
+  (moder-keypad-mode -1)
+  (when (and (eq 'beacon moder--keypad-previous-state)
+             moder--current-state)
+    (moder--beacon-apply-command moder--keypad-this-command))
+  (when moder--keypad-previous-state
+    (moder--switch-state moder--keypad-previous-state)))
 
-(defun meow--direction-forward ()
+(defun moder--direction-forward ()
   "Make the selection towards forward."
   (when (and (region-active-p) (< (point) (mark)))
     (exchange-point-and-mark)))
 
-(defun meow--direction-backward ()
+(defun moder--direction-backward ()
   "Make the selection towards backward."
   (when (and (region-active-p) (> (point) (mark)))
     (exchange-point-and-mark)))
 
-(defun meow--direction-backward-p ()
+(defun moder--direction-backward-p ()
   "Return whether we have a backward selection."
   (and (region-active-p)
        (> (mark) (point))))
 
-(defun meow--direction-forward-p ()
+(defun moder--direction-forward-p ()
   "Return whether we have a forward selection."
   (and (region-active-p)
        (<= (mark) (point))))
 
-(defun meow--selection-type ()
+(defun moder--selection-type ()
   "Return current selection type."
   (when (region-active-p)
-    (car meow--selection)))
+    (car moder--selection)))
 
-(defun meow--in-string-p (&optional pos)
+(defun moder--in-string-p (&optional pos)
   "Return whether POS or current position is in string."
   (save-mark-and-excursion
     (when pos (goto-char pos))
     (nth 3 (syntax-ppss))))
 
-(defun meow--in-comment-p (&optional pos)
+(defun moder--in-comment-p (&optional pos)
   "Return whether POS or current position is in string."
   (save-mark-and-excursion
     (when pos (goto-char pos))
     (nth 4 (syntax-ppss))))
 
-(defun meow--sum (sequence)
+(defun moder--sum (sequence)
   (seq-reduce #'+ sequence 0))
 
-(defun meow--reduce (fn init sequence)
+(defun moder--reduce (fn init sequence)
   (seq-reduce fn sequence init))
 
-(defun meow--string-pad (s len pad &optional start)
+(defun moder--string-pad (s len pad &optional start)
   (if (<= len (length s))
       s
     (if start
-	(concat (make-string (- len (length s)) pad) s)
+        (concat (make-string (- len (length s)) pad) s)
       (concat s (make-string (- len (length s)) pad)))))
 
-(defun meow--truncate-string (len s ellipsis)
+(defun moder--truncate-string (len s ellipsis)
   (if (> (length s) len)
       (concat (substring s 0 (- len (length ellipsis))) ellipsis)
     s))
 
-(defun meow--string-join (sep s)
+(defun moder--string-join (sep s)
   (string-join s sep))
 
-(defun meow--prompt-symbol-and-words (prompt beg end &optional disallow-empty)
+(defun moder--prompt-symbol-and-words (prompt beg end &optional disallow-empty)
   "Completion with PROMPT for symbols and words from BEG to END."
   (let ((completions))
     (save-mark-and-excursion
       (goto-char beg)
       (while (re-search-forward "\\_<\\(\\sw\\|\\s_\\)+\\_>" end t)
         (let ((result (match-string-no-properties 0)))
-          (when (>= (length result) meow-visit-collect-min-length)
-            (if meow-visit-sanitize-completion
+          (when (>= (length result) moder-visit-collect-min-length)
+            (if moder-visit-sanitize-completion
                 (push (cons result (format "\\_<%s\\_>" (regexp-quote result))) completions)
               (push (format "\\_<%s\\_>" (regexp-quote result)) completions))))))
     (setq completions (delete-dups completions))
@@ -299,84 +299,84 @@ Looks up the state in meow-replace-state-name-list"
         (setq selected (completing-read
                         (concat "[Input must be non-empty] " prompt)
                         completions nil nil)))
-      (if meow-visit-sanitize-completion
+      (if moder-visit-sanitize-completion
           (or (cdr (assoc selected completions))
               (regexp-quote selected))
         selected))))
 
-(defun meow--on-window-state-change (&rest _args)
+(defun moder--on-window-state-change (&rest _args)
   "Update cursor style after switching window."
-  (meow--update-cursor)
-  (meow--update-indicator))
+  (moder--update-cursor)
+  (moder--update-indicator))
 
-(defun meow--on-exit ()
+(defun moder--on-exit ()
   (unless (display-graphic-p)
     (send-string-to-terminal "\e[2 q")))
 
-(defun meow--get-indent ()
+(defun moder--get-indent ()
   "Get indent of current line."
   (save-mark-and-excursion
     (back-to-indentation)
     (- (point) (line-beginning-position))))
 
-(defun meow--empty-line-p ()
+(defun moder--empty-line-p ()
   "Whether current line is empty."
   (string-match-p "^ *$" (buffer-substring-no-properties
                           (line-beginning-position)
                           (line-end-position))))
 
-(defun meow--ordinal (n)
+(defun moder--ordinal (n)
   (cl-case n
     ((1) "1st")
     ((2) "2nd")
     ((3) "3rd")
     (t (format "%dth" n))))
 
-(defun meow--allow-modify-p ()
+(defun moder--allow-modify-p ()
   (and (not buffer-read-only)
-       (not meow--temp-normal)))
+       (not moder--temp-normal)))
 
-(defun meow--with-universal-argument-p (arg)
+(defun moder--with-universal-argument-p (arg)
   (equal '(4) arg))
 
-(defun meow--with-negative-argument-p (arg)
+(defun moder--with-negative-argument-p (arg)
   (< (prefix-numeric-value arg) 0))
 
-(defun meow--with-shift-p ()
+(defun moder--with-shift-p ()
   (member 'shift last-input-event))
 
-(defun meow--bounds-with-type (type thing)
+(defun moder--bounds-with-type (type thing)
   (when-let* ((bounds (bounds-of-thing-at-point thing)))
     (cons type bounds)))
 
-(defun meow--insert (&rest args)
-  "Use `meow--insert-function' to insert ARGS at point."
-  (apply meow--insert-function args))
+(defun moder--insert (&rest args)
+  "Use `moder--insert-function' to insert ARGS at point."
+  (apply moder--insert-function args))
 
-(defun meow--delete-region (start end)
-  "Use `meow--delete-region-function' to delete text between START and END."
-  (funcall meow--delete-region-function start end))
+(defun moder--delete-region (start end)
+  "Use `moder--delete-region-function' to delete text between START and END."
+  (funcall moder--delete-region-function start end))
 
-(defun meow--push-search (search)
+(defun moder--push-search (search)
   (unless (string-equal search (car regexp-search-ring))
     (add-to-history 'regexp-search-ring search regexp-search-ring-max)))
 
-(defun meow--remove-text-properties (text)
+(defun moder--remove-text-properties (text)
   (set-text-properties 0 (length text) nil text)
   text)
 
-(defun meow--toggle-relative-line-number ()
+(defun moder--toggle-relative-line-number ()
   (when display-line-numbers
-    (if (bound-and-true-p meow-insert-mode)
+    (if (bound-and-true-p moder-insert-mode)
         (setq display-line-numbers t)
       (setq display-line-numbers 'relative))))
 
-(defun meow--render-char-thing-table ()
+(defun moder--render-char-thing-table ()
   (let* ((ww (frame-width))
          (w 25)
          (col (min 5 (/ ww w))))
     (thread-last
-      meow-char-thing-table
+      moder-char-thing-table
       (seq-group-by #'cdr)
       (seq-sort-by #'car #'string-lessp)
       (seq-map-indexed
@@ -386,22 +386,22 @@ Looks up the state in meow-replace-state-name-list"
                 (pre (thread-last
                        pairs
                        (mapcar (lambda (it) (char-to-string (car it))))
-                       (meow--string-join " "))))
+                       (moder--string-join " "))))
            (format "%s%s%s%s"
                    (propertize
-                    (meow--string-pad pre 8 32 t)
-                     'face 'font-lock-constant-face)
+                    (moder--string-pad pre 8 32 t)
+                    'face 'font-lock-constant-face)
                    (propertize " → " 'face 'font-lock-comment-face)
                    (propertize
-                    (meow--string-pad (symbol-name th) 13 32 t)
-                     'face 'font-lock-function-name-face)
+                    (moder--string-pad (symbol-name th) 13 32 t)
+                    'face 'font-lock-function-name-face)
                    (if (= (1- col) (mod idx col))
                        "\n"
                      " ")))))
       (string-join)
       (string-trim-right))))
 
-(defun meow--transpose-lists (lists)
+(defun moder--transpose-lists (lists)
   (when lists
     (let* ((n (seq-max (mapcar #'length lists)))
            (rst (apply #'list (make-list n ()))))
@@ -416,13 +416,13 @@ Looks up the state in meow-replace-state-name-list"
             lists)
       (mapcar #'reverse rst))))
 
-(defun meow--get-event-key (e)
+(defun moder--get-event-key (e)
   (if (and (integerp (event-basic-type e))
            (member 'shift (event-modifiers e)))
       (upcase (event-basic-type e))
     (event-basic-type e)))
 
-(defun meow--ensure-visible ()
+(defun moder--ensure-visible ()
   (let ((overlays (overlays-at (1- (point))))
         ov expose)
     (while (setq ov (pop overlays))
@@ -430,15 +430,15 @@ Looks up the state in meow-replace-state-name-list"
                (setq expose (overlay-get ov 'isearch-open-invisible)))
           (funcall expose ov)))))
 
-(defun meow--minibuffer-setup ()
-  (local-set-key (kbd "<escape>") #'meow-minibuffer-quit)
-  (setq-local meow-normal-mode nil)
-  (when (or (member this-command meow-grab-fill-commands)
-            (member meow--keypad-this-command meow-grab-fill-commands))
-    (when-let* ((s (meow--second-sel-get-string)))
-      (meow--insert s))))
+(defun moder--minibuffer-setup ()
+  (local-set-key (kbd "<escape>") #'moder-minibuffer-quit)
+  (setq-local moder-normal-mode nil)
+  (when (or (member this-command moder-grab-fill-commands)
+            (member moder--keypad-this-command moder-grab-fill-commands))
+    (when-let* ((s (moder--second-sel-get-string)))
+      (moder--insert s))))
 
-(defun meow--parse-string-to-keypad-keys (str)
+(defun moder--parse-string-to-keypad-keys (str)
   (let ((strs (split-string str " ")))
     (thread-last
       strs
@@ -455,7 +455,7 @@ Looks up the state in meow-replace-state-name-list"
            (cons 'literal str)))))
       (reverse))))
 
-(defun meow--parse-input-event (e)
+(defun moder--parse-input-event (e)
   (cond
    ((equal e 32)
     "SPC")
@@ -473,22 +473,22 @@ Looks up the state in meow-replace-state-name-list"
     (format "<%s>" e))
    (t nil)))
 
-(defun meow--prepare-region-for-kill ()
-  (when (and (equal 'line (cdr (meow--selection-type)))
-             (meow--direction-forward-p)
+(defun moder--prepare-region-for-kill ()
+  (when (and (equal 'line (cdr (moder--selection-type)))
+             (moder--direction-forward-p)
              (< (point) (point-max)))
     (forward-char 1)))
 
-(defun meow--prepare-string-for-kill-append (s)
+(defun moder--prepare-string-for-kill-append (s)
   (let ((curr (current-kill 0 nil)))
-    (cl-case (cdr (meow--selection-type))
+    (cl-case (cdr (moder--selection-type))
       ((line) (concat (unless (string-suffix-p "\n" curr) "\n")
                       (string-trim-right s "\n")))
       ((word block) (concat (unless (string-suffix-p " " curr) " ")
                             (string-trim s " " "\n")))
       (t s))))
 
-(defun meow--event-key (e)
+(defun moder--event-key (e)
   (let ((c (event-basic-type e)))
     (if (and (char-or-string-p c)
              (member 'shift (event-modifiers e)))
@@ -497,7 +497,7 @@ Looks up the state in meow-replace-state-name-list"
 
 
 
-(defun meow--make-button (string callback &optional data help-echo)
+(defun moder--make-button (string callback &optional data help-echo)
   "Copy from buttonize, which is available in Emacs 29.1"
   (let ((string
          (apply #'propertize string
@@ -514,59 +514,59 @@ Looks up the state in meow-replace-state-name-list"
     (add-face-text-property 0 (length string) 'button t string)
     string))
 
-(defun meow--parse-def (def)
+(defun moder--parse-def (def)
   "Return a command or keymap for DEF.
 
 If DEF is a string, return a command that calls the command or keymap
 that bound to DEF. Otherwise, return DEF."
   (if (stringp def)
-      (let ((cmd-name (gensym 'meow-dispatch_)))
+      (let ((cmd-name (gensym 'moder-dispatch_)))
         ;; dispatch command
         (defalias cmd-name
           (lambda ()
             (:documentation
              (format "Execute the command which is bound to %s."
-                     (meow--make-button def 'describe-key (kbd def))))
+                     (moder--make-button def 'describe-key (kbd def))))
             (interactive)
-            (meow--execute-kbd-macro def)))
-        (put cmd-name 'meow-dispatch def)
+            (moder--execute-kbd-macro def)))
+        (put cmd-name 'moder-dispatch def)
         cmd-name)
     def))
 
-(defun meow--second-sel-set-string (string)
+(defun moder--second-sel-set-string (string)
   (cond
-   ((meow--second-sel-buffer)
+   ((moder--second-sel-buffer)
     (with-current-buffer (overlay-buffer mouse-secondary-overlay)
       (goto-char (overlay-start mouse-secondary-overlay))
-      (meow--delete-region (overlay-start mouse-secondary-overlay) (overlay-end mouse-secondary-overlay))
-      (meow--insert string)))
+      (moder--delete-region (overlay-start mouse-secondary-overlay) (overlay-end mouse-secondary-overlay))
+      (moder--insert string)))
    ((markerp mouse-secondary-start)
     (with-current-buffer (marker-buffer mouse-secondary-start)
       (goto-char (marker-position mouse-secondary-start))
-      (meow--insert string)))))
+      (moder--insert string)))))
 
-(defun meow--second-sel-get-string ()
-  (when (meow--second-sel-buffer)
+(defun moder--second-sel-get-string ()
+  (when (moder--second-sel-buffer)
     (with-current-buffer (overlay-buffer mouse-secondary-overlay)
       (buffer-substring-no-properties
        (overlay-start mouse-secondary-overlay)
        (overlay-end mouse-secondary-overlay)))))
 
-(defun meow--second-sel-buffer ()
+(defun moder--second-sel-buffer ()
   (and (overlayp mouse-secondary-overlay)
        (overlay-buffer mouse-secondary-overlay)))
 
-(defun meow--second-sel-bound ()
+(defun moder--second-sel-bound ()
   (and (secondary-selection-exist-p)
        (cons (overlay-start mouse-secondary-overlay)
              (overlay-end mouse-secondary-overlay))))
 
-(defmacro meow--with-selection-fallback (&rest body)
+(defmacro moder--with-selection-fallback (&rest body)
   `(if (region-active-p)
        (progn ,@body)
-     (meow--selection-fallback)))
+     (moder--selection-fallback)))
 
-(defmacro meow--wrap-collapse-undo (&rest body)
+(defmacro moder--wrap-collapse-undo (&rest body)
   "Like `progn' but perform BODY with undo collapsed."
   (declare (indent 0) (debug t))
   (let ((handle (make-symbol "--change-group-handle--"))
@@ -588,88 +588,88 @@ that bound to DEF. Otherwise, return DEF."
                (undo-amalgamate-change-group ,handle))
            (cancel-change-group ,handle))))))
 
-(defun meow--highlight-pre-command ()
-  (unless (member this-command '(meow-search))
-    (meow--remove-match-highlights))
-  (meow--remove-expand-highlights)
-  (meow--remove-search-highlight))
+(defun moder--highlight-pre-command ()
+  (unless (member this-command '(moder-search))
+    (moder--remove-match-highlights))
+  (moder--remove-expand-highlights)
+  (moder--remove-search-highlight))
 
-(defun meow--remove-fake-cursor (rol)
+(defun moder--remove-fake-cursor (rol)
   (when (overlayp rol)
-    (when-let* ((ovs (overlay-get rol 'meow-face-cursor)))
+    (when-let* ((ovs (overlay-get rol 'moder-face-cursor)))
       (mapc (lambda (o) (when (overlayp o) (delete-overlay o)))
             ovs))))
 
-(defvar meow--region-cursor-faces '(meow-region-cursor-1
-                                    meow-region-cursor-2
-                                    meow-region-cursor-3))
+(defvar moder--region-cursor-faces '(moder-region-cursor-1
+                                     moder-region-cursor-2
+                                     moder-region-cursor-3))
 
-(defun meow--add-fake-cursor (rol)
-  (if (and meow-use-enhanced-selection-effect
-           (or (meow-normal-mode-p)
-               (meow-beacon-mode-p)))
+(defun moder--add-fake-cursor (rol)
+  (if (and moder-use-enhanced-selection-effect
+           (or (moder-normal-mode-p)
+               (moder-beacon-mode-p)))
       (when (overlayp rol)
         (let ((start (overlay-start rol))
               (end (overlay-end rol)))
           (unless (= start end)
             (let (ovs)
-                (if (meow--direction-forward-p)
-                    (progn
-                      (let ((p end)
-                            (i 0))
-                        (while (and (> p start)
-                                    (< i 3))
-                          (let ((ov (make-overlay (1- p) p)))
-                            (overlay-put ov 'face (nth i meow--region-cursor-faces))
-                            (overlay-put ov 'priority 10)
-                            (overlay-put ov 'window (overlay-get rol 'window))
-                            (cl-decf p)
-                            (cl-incf i)
-                            (push ov ovs)))))
-                  (let ((p start)
-                        (i 0))
-                    (while (and (< p end)
-                                (< i 3))
-                      (let ((ov (make-overlay p (1+ p))))
-                        (overlay-put ov 'face (nth i meow--region-cursor-faces))
-                        (overlay-put ov 'priority 10)
-                        (overlay-put ov 'window (overlay-get rol 'window))
-                        (cl-incf p)
-                        (cl-incf i)
-                        (push ov ovs)))))
-                (overlay-put rol 'meow-face-cursor ovs)))
+              (if (moder--direction-forward-p)
+                  (progn
+                    (let ((p end)
+                          (i 0))
+                      (while (and (> p start)
+                                  (< i 3))
+                        (let ((ov (make-overlay (1- p) p)))
+                          (overlay-put ov 'face (nth i moder--region-cursor-faces))
+                          (overlay-put ov 'priority 10)
+                          (overlay-put ov 'window (overlay-get rol 'window))
+                          (cl-decf p)
+                          (cl-incf i)
+                          (push ov ovs)))))
+                (let ((p start)
+                      (i 0))
+                  (while (and (< p end)
+                              (< i 3))
+                    (let ((ov (make-overlay p (1+ p))))
+                      (overlay-put ov 'face (nth i moder--region-cursor-faces))
+                      (overlay-put ov 'priority 10)
+                      (overlay-put ov 'window (overlay-get rol 'window))
+                      (cl-incf p)
+                      (cl-incf i)
+                      (push ov ovs)))))
+              (overlay-put rol 'moder-face-cursor ovs)))
           rol))
     rol))
 
-(defun meow--redisplay-highlight-region-function (start end window rol)
-  (when (and (or (meow-normal-mode-p)
-                 (meow-beacon-mode-p))
+(defun moder--redisplay-highlight-region-function (start end window rol)
+  (when (and (or (moder-normal-mode-p)
+                 (moder-beacon-mode-p))
              (equal window (selected-window)))
     (if (use-region-p)
-        (meow--set-cursor-type meow-cursor-type-region-cursor)
-      (meow--set-cursor-type meow-cursor-type-normal)))
-  (when meow-use-enhanced-selection-effect
-    (meow--remove-fake-cursor rol))
+        (moder--set-cursor-type moder-cursor-type-region-cursor)
+      (moder--set-cursor-type moder-cursor-type-normal)))
+  (when moder-use-enhanced-selection-effect
+    (moder--remove-fake-cursor rol))
   (thread-first
-    (funcall meow--backup-redisplay-highlight-region-function start end window rol)
-    (meow--add-fake-cursor)))
+    (funcall moder--backup-redisplay-highlight-region-function start end window rol)
+    (moder--add-fake-cursor)))
 
-(defun meow--redisplay-unhighlight-region-function (rol)
-  (meow--remove-fake-cursor rol)
+(defun moder--redisplay-unhighlight-region-function (rol)
+  (moder--remove-fake-cursor rol)
   (when (and (overlayp rol)
              (equal (overlay-get rol 'window) (selected-window))
-             (or (meow-normal-mode-p)
-                 (meow-beacon-mode-p)))
-    (meow--set-cursor-type meow-cursor-type-normal))
-  (funcall meow--backup-redisplay-unhighlight-region-function rol))
+             (or (moder-normal-mode-p)
+                 (moder-beacon-mode-p)))
+    (moder--set-cursor-type moder-cursor-type-normal))
+  (funcall moder--backup-redisplay-unhighlight-region-function rol))
 
-(defun meow--mix-color (color1 color2 n)
+(defun moder--mix-color (color1 color2 n)
   (mapcar (lambda (c) (apply #'color-rgb-to-hex c))
           (color-gradient (color-name-to-rgb color1)
                           (color-name-to-rgb color2)
                           n)))
 
-(defun meow--beacon-inside-secondary-selection ()
+(defun moder--beacon-inside-secondary-selection ()
   (and
    (secondary-selection-exist-p)
    (< (overlay-start mouse-secondary-overlay)
@@ -678,35 +678,35 @@ that bound to DEF. Otherwise, return DEF."
        (point)
        (overlay-end mouse-secondary-overlay))))
 
-(defun meow--narrow-secondary-selection ()
+(defun moder--narrow-secondary-selection ()
   (narrow-to-region (overlay-start mouse-secondary-overlay)
                     (overlay-end mouse-secondary-overlay)))
 
-(defun meow--hack-cursor-pos (pos)
-  "Hack the point when `meow-use-cursor-position-hack' is enabled."
-  (if meow-use-cursor-position-hack
+(defun moder--hack-cursor-pos (pos)
+  "Hack the point when `moder-use-cursor-position-hack' is enabled."
+  (if moder-use-cursor-position-hack
       (1- pos)
     pos))
 
-(defun meow--remove-modeline-indicator ()
+(defun moder--remove-modeline-indicator ()
   (setq-default mode-line-format
-                (cl-remove '(:eval (meow-indicator)) mode-line-format
+                (cl-remove '(:eval (moder-indicator)) mode-line-format
                            :test 'equal)))
 
-(defun meow--init-buffers ()
-  "Enable meow in existing buffers."
+(defun moder--init-buffers ()
+  "Enable moder in existing buffers."
   (dolist (buf (buffer-list))
     (unless (minibufferp buf)
       (with-current-buffer buf
-        (meow--enable)))))
+        (moder--enable)))))
 
-(defun meow--get-leader-keymap ()
+(defun moder--get-leader-keymap ()
   (cond
-   ((keymapp meow-keypad-leader-dispatch)
-    meow-keypad-leader-dispatch)
+   ((keymapp moder-keypad-leader-dispatch)
+    moder-keypad-leader-dispatch)
 
-   ((null meow-keypad-leader-dispatch)
-    (alist-get 'leader meow-keymap-alist))))
+   ((null moder-keypad-leader-dispatch)
+    (alist-get 'leader moder-keymap-alist))))
 
-(provide 'meow-util)
-;;; meow-util.el ends here
+(provide 'moder-util)
+;;; moder-util.el ends here

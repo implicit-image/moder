@@ -10,39 +10,39 @@ More than half of commands are about movement, they can be classified into 4 gro
 Char & Word movement have explicit direction.
 Current selection's direction will always be ignored.
 
-*** meow-left/right
+*** moder-left/right
 
 Move cursor left/right.
 
-*** meow-left/right-expand
+*** moder-left/right-expand
 
 Selection type: ~expand char~
 
 Move cursor left/right and select, the selection can be expand by other char movements.
 
-*** meow-prev/next
+*** moder-prev/next
 
 Move cursor to previous/next line.
 
-*** meow-prev/next-expand
+*** moder-prev/next-expand
 
 Selection type: ~expand char~
 
 Move cursor prev/next and select, the selection can be expand by other char movements.
 
-*** meow-mark-word/symbol
+*** moder-mark-word/symbol
 
 Selection Type: ~expand word/symbol~
 
 Select current word/symbol(from its beginning to end), push the content into ~regexp-search-ring~.
 
-*** meow-next-word/symbol
+*** moder-next-word/symbol
 
 Selection Type: ~no-expand word/symbol~
 
 Forward select to the word/symbol end.
 
-*** meow-back-word/symbol
+*** moder-back-word/symbol
 
 Selection type: ~no-expand word/symbol~
 
@@ -52,26 +52,26 @@ Backward select to the word/symbol beginning.
 For command in these group, reverse movement can be done with negative argument.
 Command will respect the direction if current selection has the same selection type(e.g. ~line~ vs ~line~)
 
-*** meow-expand-N
+*** moder-expand-N
 
 *N*: number from 0 to 9.
 
 After each movement(except char movement), further position hint will be displayed inline.
 Use this command to expand quickly.
 
-*** meow-visit
+*** moder-visit
 
 Selection type: ~no-expand visit~
 
 Read a regexp from minibuffer, search and select it.
 The input will be pushed into ~regexp-search-ring~.  So
-~meow-search~ can be used for further searching with the same condition.
+~moder-search~ can be used for further searching with the same condition.
 
 A list of occurred regexps will be provided for completion, the regexps will
 be sanitized by default. To display them in raw format, set
-~meow-visit-sanitize-completion~ to nil.
+~moder-visit-sanitize-completion~ to nil.
 
-*** meow-search
+*** moder-search
 
 Selection type: ~no-expand visit~
 
@@ -79,37 +79,37 @@ Search and select with the car of current ~regexp-search-ring~.
 
 If the contents of selection doesn't match the regexp, will push it to ~regexp-search-ring~ before searching.
 
-*** meow-line
+*** moder-line
 
 Selection type: ~expand line~
 
 Select current line.
 
-*** meow-block
+*** moder-block
 
 Selection type: ~expand block~
 
 Select current block. Block means a matched parens(usually ~(...)~, ~[...]~ or ~{...}~).
 
-*** meow-to-block
+*** moder-to-block
 
 Selection type: ~expand block~
 
 Select from current point, to the next block.
 
-*** meow-find
+*** moder-find
 
 Selection type: ~no-expand find~
 
 Select from current point, to the far end of a specific character.
 
-*** meow-till
+*** moder-till
 
 Selection type: ~no-expand till~
 
 Select from current point, to the near end of a specific character.
 
-*** meow-join
+*** moder-join
 
 Selection type: ~expand join~
 
@@ -132,51 +132,51 @@ Selection type: ~transient~, means no way to expand.
 | defun        | d   |
 | buffer       | b   |
 
-*** meow-inner-of-thing
+*** moder-inner-of-thing
 Select the inner part of thing. e.g. A Lisp expression without parentheses.
 
-*** meow-bounds-of-thing
+*** moder-bounds-of-thing
 Select the whole thing.
 
-*** meow-beginning-of-thing
+*** moder-beginning-of-thing
 Select from current point to the beginning of thing.
 
-*** meow-end-of-thing
+*** moder-end-of-thing
 Select from current point to the end of thing.
 
 * Other Commands
 
 ** toggle state
 
-*** meow-insert
+*** moder-insert
 
 Switch to INSERT state at the beginning of region
 
-*** meow-append
+*** moder-append
 
 Switch to INSERT state at the end of region
 
-*** meow-change
+*** moder-change
 
 Delete current region and switch to INSERT state. When exit from INSERT state, inserted content will be selected.
 
-This command support fallback behaviour, default to ~meow-change-char~.
+This command support fallback behaviour, default to ~moder-change-char~.
 
-*** meow-change-char
+*** moder-change-char
 
 Delete current character and switch to INSERT state.
 
-*** meow-open-above
+*** moder-open-above
 
 Insert a new line above, switch to INSERT state at that line.
 
-*** meow-open-below
+*** moder-open-below
 
 Insert a new line below, switch to INSERT state at that line.
 
 ** modification
 
-*** meow-kill
+*** moder-kill
 
 Kill current region.
 
@@ -185,37 +185,37 @@ Depending on the current selection type, there are two special cases:
   added to the killed content;
 - for ~join~ selection, selected region will be deleted, not killed.
 
-This command supports fallback behaviour. Default to ~meow-C-k~.
+This command supports fallback behaviour. Default to ~moder-C-k~.
 
-*** meow-C-k
+*** moder-C-k
 
 Call the command on ~C-k~.
 
-*** meow-C-d (meow-delete)
+*** moder-C-d (moder-delete)
 
 Call the command on ~C-d~.
 
-*** meow-kill-word, meow-backward-kill-word, meow-kill-symbol, meow-backward-kill-symbol
+*** moder-kill-word, moder-backward-kill-word, moder-kill-symbol, moder-backward-kill-symbol
 
-Versions of ~kill-word~ and ~backward-kill-word~ that respect ~meow-word-thing~
-and ~meow-symbol-thing~. May be bound to M-d and M-DEL in place of ~kill-word~
+Versions of ~kill-word~ and ~backward-kill-word~ that respect ~moder-word-thing~
+and ~moder-symbol-thing~. May be bound to M-d and M-DEL in place of ~kill-word~
 and ~backward-kill-word~.
 
-*** meow-save
+*** moder-save
 
 Copy.
 
 This command support fallback behaviour.
 
-*** meow-yank
+*** moder-yank
 
 Yank.
 
-*** meow-yank-pop
+*** moder-yank-pop
 
 Pop yank.
 
-*** meow-replace
+*** moder-replace
 
 Replace current region with current kill.
 
@@ -223,58 +223,58 @@ This command support fallback behaviour.
 
 ** other commands
 
-*** meow-cancel-selection
+*** moder-cancel-selection
 
 Cancel selection.
 
 This command support fallback behaviour, default to ~keyboard-quit~.
 
-*** meow-reverse
+*** moder-reverse
 
 Reverse current selection.
 
 This command support fallback behaviour.
 
-*** meow-undo
+*** moder-undo
 
 Undo. Unlike builtin ~undo~, this command will always cancel selection.
 
-*** meow-undo-in-selection
+*** moder-undo-in-selection
 
 Undo in current selection.
 
-*** meow-pop-selection
+*** moder-pop-selection
 
 Pop one selection.
 
-This command support fallback behaviour, default to ~meow-pop-grab~.
+This command support fallback behaviour, default to ~moder-pop-grab~.
 
-*** meow-grab
+*** moder-grab
 
 Turn current selection into secondary selection.
 
-*** meow-sync-grab
+*** moder-sync-grab
 
 Synchronize the contents of secondary selection to the contents of current region.
 
-Additionally, grab current position(thus you can come back later with ~meow-pop-grab~).
+Additionally, grab current position(thus you can come back later with ~moder-pop-grab~).
 
-*** meow-swap-grab
+*** moder-swap-grab
 
 Swap the contents of secondary selection with the contents of current region.
 
 Additionally, grab current position.
 
-*** meow-pop-grab
+*** moder-pop-grab
 
 Cancel secondary selection.
 
-This command is used as a fallback behaviour for ~meow-pop-selection~ by default.
+This command is used as a fallback behaviour for ~moder-pop-selection~ by default.
 
-*** meow-pop-to-mark
+*** moder-pop-to-mark
 
 Leave a mark at current location then jump to the previous mark in ~mark-ring~.
 
-*** meow-unpop-to-mark
+*** moder-unpop-to-mark
 
-The "reverse" version of  ~meow-pop-to-mark~.
+The "reverse" version of  ~moder-pop-to-mark~.

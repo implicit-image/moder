@@ -1,4 +1,4 @@
-;;; meow-esc.el --- make ESC works in TUI       -*- lexical-binding: t; -*-
+;;; moder-esc.el --- make ESC works in TUI       -*- lexical-binding: t; -*-
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -16,58 +16,58 @@
 ;;; Commentary:
 ;; In the terminal, ESC can be used as META, because they send the
 ;; same keycode.  To allow both usages simulataneously, you can
-;; customize meow-esc-delay, the maximum time between ESC and the
+;; customize moder-esc-delay, the maximum time between ESC and the
 ;; keypress that should be treated as a meta combo. If the time is
 ;; longer than the delay, it's treated as pressing ESC and then the
 ;; key separately.
 ;;; Code:
 
-(defvar meow-esc-delay 0.1)
-(defvar meow--escape-key-seq [?\e])
+(defvar moder-esc-delay 0.1)
+(defvar moder--escape-key-seq [?\e])
 
 ;;;###autoload
-(define-minor-mode meow-esc-mode
+(define-minor-mode moder-esc-mode
   "Mode that ensures ESC works in the terminal"
   :init-value nil
   :global t
-  :group 'meow
+  :group 'moder
   :keymap nil
-  (if meow-esc-mode
+  (if moder-esc-mode
       (progn
-        (setq meow-esc-mode t)
-        (add-hook 'after-make-frame-functions #'meow--init-esc-if-tui)
-        (mapc #'meow--init-esc-if-tui (frame-list)))
+        (setq moder-esc-mode t)
+        (add-hook 'after-make-frame-functions #'moder--init-esc-if-tui)
+        (mapc #'moder--init-esc-if-tui (frame-list)))
     (progn
-      (remove-hook 'after-make-frame-functions #'meow--init-esc-if-tui)
-      (mapc #'meow--deinit-esc-if-tui (frame-list))
-      (setq meow-esc-mode nil))))
+      (remove-hook 'after-make-frame-functions #'moder--init-esc-if-tui)
+      (mapc #'moder--deinit-esc-if-tui (frame-list))
+      (setq moder-esc-mode nil))))
 
 
-(defun meow--init-esc-if-tui (frame)
+(defun moder--init-esc-if-tui (frame)
   (with-selected-frame frame
     (unless window-system
       (let ((term (frame-terminal frame)))
-        (when (not (terminal-parameter term 'meow-esc-map))
-          (let ((meow-esc-map (lookup-key input-decode-map [?\e])))
-            (set-terminal-parameter term 'meow-esc-map meow-esc-map)
-            (define-key input-decode-map meow--escape-key-seq
-                        `(menu-item "" ,meow-esc-map :filter ,#'meow-esc))))))))
+        (when (not (terminal-parameter term 'moder-esc-map))
+          (let ((moder-esc-map (lookup-key input-decode-map [?\e])))
+            (set-terminal-parameter term 'moder-esc-map moder-esc-map)
+            (define-key input-decode-map moder--escape-key-seq
+                        `(menu-item "" ,moder-esc-map :filter ,#'moder-esc))))))))
 
-(defun meow--deinit-esc-if-tui (frame)
+(defun moder--deinit-esc-if-tui (frame)
   (with-selected-frame frame
     (unless window-system
       (let ((term (frame-terminal frame)))
         (when (terminal-live-p term)
-          (let ((meow-esc-map (terminal-parameter term 'meow-esc-map)))
-            (when meow-esc-map
-              (define-key input-decode-map meow--escape-key-seq meow-esc-map)
-              (set-terminal-parameter term 'meow-esc-map nil))))))))
+          (let ((moder-esc-map (terminal-parameter term 'moder-esc-map)))
+            (when moder-esc-map
+              (define-key input-decode-map moder--escape-key-seq moder-esc-map)
+              (set-terminal-parameter term 'moder-esc-map nil))))))))
 
-(defun meow-esc (map)
+(defun moder-esc (map)
   (if (and (let ((keys (this-single-command-keys)))
              (and (> (length keys) 0)
                   (= (aref keys (1- (length keys))) ?\e)))
-           (sit-for meow-esc-delay))
+           (sit-for moder-esc-delay))
       (prog1 [escape]
         (when defining-kbd-macro
           (end-kbd-macro)
@@ -75,5 +75,5 @@
           (start-kbd-macro t t)))
     map))
 
-(provide 'meow-esc)
-;;; meow-esc.el ends here
+(provide 'moder-esc)
+;;; moder-esc.el ends here

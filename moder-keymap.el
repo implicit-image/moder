@@ -1,4 +1,4 @@
-;;; meow-keymap.el --- Default keybindings for Meow  -*- lexical-binding: t; -*-
+;;; moder-keymap.el --- Default keybindings for Moder  -*- lexical-binding: t; -*-
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,27 +22,27 @@
 
 ;;; Code:
 
-(require 'meow-var)
+(require 'moder-var)
 
-(declare-function meow-describe-key "meow-command")
-(declare-function meow-end-or-call-kmacro "meow-command")
-(declare-function meow-end-kmacro "meow-command")
+(declare-function moder-describe-key "moder-command")
+(declare-function moder-end-or-call-kmacro "moder-command")
+(declare-function moder-end-kmacro "moder-command")
 
-(defvar meow-keymap
+(defvar moder-keymap
   (let ((keymap (make-sparse-keymap)))
-    (define-key keymap [remap describe-key] #'meow-describe-key)
+    (define-key keymap [remap describe-key] #'moder-describe-key)
     keymap)
-  "Global keymap for Meow.")
+  "Global keymap for Moder.")
 
-(defvar meow-insert-state-keymap
+(defvar moder-insert-state-keymap
   (let ((keymap (make-keymap)))
-    (define-key keymap [escape] 'meow-insert-exit)
-    (define-key keymap [remap kmacro-end-or-call-macro] #'meow-end-or-call-kmacro)
-    (define-key keymap [remap kmacro-end-macro] #'meow-end-kmacro)
+    (define-key keymap [escape] 'moder-insert-exit)
+    (define-key keymap [remap kmacro-end-or-call-macro] #'moder-end-or-call-kmacro)
+    (define-key keymap [remap kmacro-end-macro] #'moder-end-kmacro)
     keymap)
-  "Keymap for Meow insert state.")
+  "Keymap for Moder insert state.")
 
-(defvar meow-numeric-argument-keymap
+(defvar moder-numeric-argument-keymap
   (let ((keymap (make-sparse-keymap)))
     (define-key keymap (kbd "1") 'digit-argument)
     (define-key keymap (kbd "2") 'digit-argument)
@@ -56,75 +56,75 @@
     (define-key keymap (kbd "0") 'digit-argument)
     keymap))
 
-(defvar meow-normal-state-keymap
+(defvar moder-normal-state-keymap
   (let ((keymap (make-keymap)))
     (suppress-keymap keymap t)
-    (define-key keymap (kbd "SPC") 'meow-keypad)
-    (define-key keymap [remap kmacro-end-or-call-macro] #'meow-end-or-call-kmacro)
-    (define-key keymap [remap kmacro-end-macro] #'meow-end-kmacro)
+    (define-key keymap (kbd "SPC") 'moder-keypad)
+    (define-key keymap [remap kmacro-end-or-call-macro] #'moder-end-or-call-kmacro)
+    (define-key keymap [remap kmacro-end-macro] #'moder-end-kmacro)
     keymap)
-  "Keymap for Meow normal state.")
+  "Keymap for Moder normal state.")
 
-(defvar meow-motion-state-keymap
+(defvar moder-motion-state-keymap
   (let ((keymap (make-sparse-keymap)))
-    (define-key keymap [escape] 'meow-last-buffer)
-    (define-key keymap (kbd "SPC") 'meow-keypad)
+    (define-key keymap [escape] 'moder-last-buffer)
+    (define-key keymap (kbd "SPC") 'moder-keypad)
     keymap)
-  "Keymap for Meow motion state.")
+  "Keymap for Moder motion state.")
 
-(defvar meow-keypad-state-keymap
+(defvar moder-keypad-state-keymap
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map t)
-    (define-key map [remap kmacro-end-or-call-macro] #'meow-end-or-call-kmacro)
-    (define-key map [remap kmacro-end-macro] #'meow-end-kmacro)
-    (define-key map (kbd "DEL") 'meow-keypad-undo)
-    (define-key map (kbd "<backspace>") 'meow-keypad-undo)
-    (define-key map (kbd "<escape>") 'meow-keypad-quit)
-    (define-key map [remap keyboard-quit] 'meow-keypad-quit)
+    (define-key map [remap kmacro-end-or-call-macro] #'moder-end-or-call-kmacro)
+    (define-key map [remap kmacro-end-macro] #'moder-end-kmacro)
+    (define-key map (kbd "DEL") 'moder-keypad-undo)
+    (define-key map (kbd "<backspace>") 'moder-keypad-undo)
+    (define-key map (kbd "<escape>") 'moder-keypad-quit)
+    (define-key map [remap keyboard-quit] 'moder-keypad-quit)
     map)
-  "Keymap for Meow keypad state.")
+  "Keymap for Moder keypad state.")
 
-(defvar meow-beacon-state-keymap
+(defvar moder-beacon-state-keymap
   (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map meow-normal-state-keymap)
+    (set-keymap-parent map moder-normal-state-keymap)
     (suppress-keymap map t)
 
     ;; kmacros
-    (define-key map [remap meow-insert] 'meow-beacon-insert)
-    (define-key map [remap meow-append] 'meow-beacon-append)
-    (define-key map [remap meow-change] 'meow-beacon-change)
-    (define-key map [remap meow-change-save] 'meow-beacon-change-save)
-    (define-key map [remap meow-replace] 'meow-beacon-replace)
-    (define-key map [remap meow-kill] 'meow-beacon-kill-delete)
+    (define-key map [remap moder-insert] 'moder-beacon-insert)
+    (define-key map [remap moder-append] 'moder-beacon-append)
+    (define-key map [remap moder-change] 'moder-beacon-change)
+    (define-key map [remap moder-change-save] 'moder-beacon-change-save)
+    (define-key map [remap moder-replace] 'moder-beacon-replace)
+    (define-key map [remap moder-kill] 'moder-beacon-kill-delete)
 
-    (define-key map [remap kmacro-end-or-call-macro] 'meow-beacon-apply-kmacro)
-    (define-key map [remap kmacro-start-macro-or-insert-counter] 'meow-beacon-start)
-    (define-key map [remap kmacro-start-macro] 'meow-beacon-start)
-    (define-key map [remap meow-end-or-call-kmacro] 'meow-beacon-apply-kmacro)
-    (define-key map [remap meow-end-kmacro] 'meow-beacon-apply-kmacro)
+    (define-key map [remap kmacro-end-or-call-macro] 'moder-beacon-apply-kmacro)
+    (define-key map [remap kmacro-start-macro-or-insert-counter] 'moder-beacon-start)
+    (define-key map [remap kmacro-start-macro] 'moder-beacon-start)
+    (define-key map [remap moder-end-or-call-kmacro] 'moder-beacon-apply-kmacro)
+    (define-key map [remap moder-end-kmacro] 'moder-beacon-apply-kmacro)
 
     ;; noops
-    (define-key map [remap meow-delete] 'meow-beacon-noop)
-    (define-key map [remap meow-C-d] 'meow-beacon-noop)
-    (define-key map [remap meow-C-k] 'meow-beacon-noop)
-    (define-key map [remap meow-save] 'meow-beacon-noop)
-    (define-key map [remap meow-insert-exit] 'meow-beacon-noop)
-    (define-key map [remap meow-last-buffer] 'meow-beacon-noop)
-    (define-key map [remap meow-open-below] 'meow-beacon-noop)
-    (define-key map [remap meow-open-above] 'meow-beacon-noop)
-    (define-key map [remap meow-swap-grab] 'meow-beacon-noop)
-    (define-key map [remap meow-sync-grab] 'meow-beacon-noop)
+    (define-key map [remap moder-delete] 'moder-beacon-noop)
+    (define-key map [remap moder-C-d] 'moder-beacon-noop)
+    (define-key map [remap moder-C-k] 'moder-beacon-noop)
+    (define-key map [remap moder-save] 'moder-beacon-noop)
+    (define-key map [remap moder-insert-exit] 'moder-beacon-noop)
+    (define-key map [remap moder-last-buffer] 'moder-beacon-noop)
+    (define-key map [remap moder-open-below] 'moder-beacon-noop)
+    (define-key map [remap moder-open-above] 'moder-beacon-noop)
+    (define-key map [remap moder-swap-grab] 'moder-beacon-noop)
+    (define-key map [remap moder-sync-grab] 'moder-beacon-noop)
     map)
-  "Keymap for Meow cursor state.")
+  "Keymap for Moder cursor state.")
 
-(defvar meow-keymap-alist
-  `((insert . ,meow-insert-state-keymap)
-    (normal . ,meow-normal-state-keymap)
-    (keypad . ,meow-keypad-state-keymap)
-    (motion . ,meow-motion-state-keymap)
-    (beacon . ,meow-beacon-state-keymap)
+(defvar moder-keymap-alist
+  `((insert . ,moder-insert-state-keymap)
+    (normal . ,moder-normal-state-keymap)
+    (keypad . ,moder-keypad-state-keymap)
+    (motion . ,moder-motion-state-keymap)
+    (beacon . ,moder-beacon-state-keymap)
     (leader . ,mode-specific-map))
   "Alist of symbols of state names to keymaps.")
 
-(provide 'meow-keymap)
-;;; meow-keymap.el ends here
+(provide 'moder-keymap)
+;;; moder-keymap.el ends here

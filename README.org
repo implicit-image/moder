@@ -1,8 +1,8 @@
-#+title: Meow
+#+title: Moder
 
-[[https://melpa.org/#/meow][file:https://melpa.org/packages/meow-badge.svg]] [[https://stable.melpa.org/#/meow][file:https://stable.melpa.org/packages/meow-badge.svg]]  [[https://github.com/meow-edit/meow/actions/workflows/action.yml][https://github.com/meow-edit/meow/actions/workflows/action.yml/badge.svg]]
+[[https://melpa.org/#/moder][file:https://melpa.org/packages/moder-badge.svg]] [[https://stable.melpa.org/#/moder][file:https://stable.melpa.org/packages/moder-badge.svg]]  [[https://github.com/moder-edit/moder/actions/workflows/action.yml][https://github.com/moder-edit/moder/actions/workflows/action.yml/badge.svg]]
 
-[[file:meow.svg]]
+[[file:moder.svg]]
 
 * Introduction
 
@@ -10,9 +10,9 @@
 Less is more
 #+end_quote
 
-Meow is yet another modal editing mode for Emacs.
+Moder is yet another modal editing mode for Emacs.
 
-Meow aims to blend modal editing into Emacs with minimal interference
+Moder aims to blend modal editing into Emacs with minimal interference
 with its original key-bindings, avoiding most of the hassle introduced
 by key-binding conflicts. This leads to lower necessary configuration and
 better integration. More is achieved with fewer commands to remember.
@@ -38,16 +38,16 @@ Key features compared to existing solutions:
 
 Please feel free to ask questions and share ideas at
 
-- [[https://github.com/meow-edit/meow/discussions][Github Discussion]]
+- [[https://github.com/moder-edit/moder/discussions][Github Discussion]]
 
-- [[https://xmpp.link/#meow@chat.disroot.org?join][Meow XMPP Channel]]
+- [[https://xmpp.link/#moder@chat.disroot.org?join][Moder XMPP Channel]]
 
 
 * Documents
 
 [[file:GET_STARTED.org][Get started]] - Installation and configuration
 
-[[file:TUTORIAL.org][Tutorial]] - Learn Meow in 15 minutes
+[[file:TUTORIAL.org][Tutorial]] - Learn Moder in 15 minutes
 
 [[file:FAQ.org][FAQ]] - Frequently Asked Questions
 
@@ -55,7 +55,7 @@ Please feel free to ask questions and share ideas at
 
 [[file:CUSTOMIZATIONS.org][Customizations]] - Helper functions and variables
 
-[[file:EXPLANATION.org][Explanation]] - Ideas and concepts behind Meow
+[[file:EXPLANATION.org][Explanation]] - Ideas and concepts behind Moder
 
 [[file:CHANGELOG.md][Changelog]] - Changes, releases, and news
 

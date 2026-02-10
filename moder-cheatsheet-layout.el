@@ -1,4 +1,4 @@
-;;; meow-cheatsheet-layout.el --- Cheatsheet layouts for Meow  -*- lexical-binding: t; -*-
+;;; moder-cheatsheet-layout.el --- Cheatsheet layouts for Moder  -*- lexical-binding: t; -*-
 
 ;; This file is not part of GNU Emacs.
 
@@ -18,11 +18,11 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-;; Cheatsheet layouts for Meow.
+;; Cheatsheet layouts for Moder.
 
 ;;; Code:
 
-(defconst meow-cheatsheet-physical-layout-ansi
+(defconst moder-cheatsheet-physical-layout-ansi
   "
 ┏━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━━━━━┓
 ┃  <TLDE> │  <AE01> │  <AE02> │  <AE03> │  <AE04> │  <AE05> │  <AE06> │  <AE07> │  <AE08> │  <AE09> │  <AE10> │  <AE11> │  <AE12> │        BKSP ┃
@@ -55,7 +55,7 @@
                                                     ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ")
 
-(defconst meow-cheatsheet-physical-layout-iso
+(defconst moder-cheatsheet-physical-layout-iso
   "
 ┏━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━━━━━┓
 ┃  <TLDE> │  <AE01> │  <AE02> │  <AE03> │  <AE04> │  <AE05> │  <AE06> │  <AE07> │  <AE08> │  <AE09> │  <AE10> │  <AE11> │  <AE12> │        BKSP ┃
@@ -88,7 +88,7 @@
                                                     ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ")
 
-(defconst meow-cheatsheet-layout-qwerty
+(defconst moder-cheatsheet-layout-qwerty
   '((<TLDE> "`"	"~")
     (<AE01> "1"	"!")
     (<AE02> "2"	"@")
@@ -137,7 +137,7 @@
     (<AB10> "/"	"?")
     (<BKSL> "\\" "|")))
 
-(defconst meow-cheatsheet-layout-qwertz
+(defconst moder-cheatsheet-layout-qwertz
   '((<TLDE> "^"	"°")
     (<AE01> "1"	"!")
     (<AE02> "2"	"\"")
@@ -187,7 +187,7 @@
     (<AB09> "."	":")
     (<AB10> "-"	"_")))
 
-(defconst meow-cheatsheet-layout-dvorak
+(defconst moder-cheatsheet-layout-dvorak
   '((<TLDE> "`"	"~")
     (<AE01> "1"	"!")
     (<AE02> "2"	"@")
@@ -236,7 +236,7 @@
     (<AB10> "z"	"Z")
     (<BKSL> "\\" "|")))
 
-(defconst meow-cheatsheet-layout-colemak
+(defconst moder-cheatsheet-layout-colemak
   '((<TLDE> "`" "~")
     (<AE01> "1" "!")
     (<AE02> "2" "@")
@@ -286,7 +286,7 @@
     (<AB10> "/" "?")
     (<LSGT> "-" "_")))
 
-(defconst meow-cheatsheet-layout-colemak-dh
+(defconst moder-cheatsheet-layout-colemak-dh
   '((<TLDE> "`" "~")
     (<AE01> "1" "!")
     (<AE02> "2" "@")
@@ -336,7 +336,7 @@
     (<AB10> "/" "?")
     (<LSGT> "z" "Z")))
 
-(defconst meow-cheatsheet-layout-colemak-dh-wide
+(defconst moder-cheatsheet-layout-colemak-dh-wide
   '((<TLDE> "`" "~")
     (<AE01> "1" "!")
     (<AE02> "2" "@")
@@ -386,7 +386,7 @@
     (<AB10> "." ">")
     (<LSGT> "z" "Z")))
 
-(defconst meow-cheatsheet-layout-dvp
+(defconst moder-cheatsheet-layout-dvp
   '((<TLDE> "$" "~")
     (<AE01> "&" "%")
     (<AE02> "{" "7")
@@ -435,7 +435,7 @@
     (<AB10> "z"	"Z")
     (<BKSL> "\\" "|")))
 
-(defconst meow-cheatsheet-layout-norman
+(defconst moder-cheatsheet-layout-norman
   '((<TLDE> "`"	"~")
     (<AE01> "1"	"!")
     (<AE02> "2"	"@")
@@ -484,7 +484,7 @@
     (<AB10> "/"	"?")
     (<BKSL> "\\" "|")))
 
-(defconst meow-cheatsheet-layout-fwyr
+(defconst moder-cheatsheet-layout-fwyr
   '((<TLDE> "`"	"~")
     (<AE01> "1"	"!")
     (<AE02> "2"	"@")
@@ -533,5 +533,5 @@
     (<AB10> "."	">")
     (<BKSL> "\\" "|")))
 
-(provide 'meow-cheatsheet-layout)
-;;; meow-cheatsheet-layout.el ends here
+(provide 'moder-cheatsheet-layout)
+;;; moder-cheatsheet-layout.el ends here

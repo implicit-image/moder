@@ -1,4 +1,4 @@
-;;; meow-core.el --- Mode definitions for Meow  -*- lexical-binding: t; -*-
+;;; moder-core.el --- Mode definitions for Moder  -*- lexical-binding: t; -*-
 
 ;; This file is not part of GNU Emacs.
 
@@ -19,108 +19,108 @@
 
 ;;; Commentary:
 
-;;; Modes definition in Meow.
+;;; Modes definition in Moder.
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'subr-x)
 
-(require 'meow-util)
-(require 'meow-command)
-(require 'meow-keypad)
-(require 'meow-var)
-(require 'meow-esc)
-(require 'meow-shims)
-(require 'meow-beacon)
-(require 'meow-helpers)
+(require 'moder-util)
+(require 'moder-command)
+(require 'moder-keypad)
+(require 'moder-var)
+(require 'moder-esc)
+(require 'moder-shims)
+(require 'moder-beacon)
+(require 'moder-helpers)
 
-(meow-define-state insert
-  "Meow INSERT state minor mode."
-  :lighter " [I]"
-  :keymap meow-insert-state-keymap
-  :face meow-insert-cursor
-  (if meow-insert-mode
-      (run-hooks 'meow-insert-enter-hook)
-    (when (and meow--insert-pos
-               (not (= (point) meow--insert-pos)))
-      (thread-first
-        (meow--make-selection '(select . transient) meow--insert-pos (point))
-        (meow--select meow--insert-activate-mark)))
-    (run-hooks 'meow-insert-exit-hook)
-    (setq-local meow--insert-pos nil
-                meow--insert-activate-mark nil)))
+(moder-define-state insert
+                    "Moder INSERT state minor mode."
+                    :lighter " [I]"
+                    :keymap moder-insert-state-keymap
+                    :face moder-insert-cursor
+                    (if moder-insert-mode
+                        (run-hooks 'moder-insert-enter-hook)
+                      (when (and moder--insert-pos
+                                 (not (= (point) moder--insert-pos)))
+                        (thread-first
+                          (moder--make-selection '(select . transient) moder--insert-pos (point))
+                          (moder--select moder--insert-activate-mark)))
+                      (run-hooks 'moder-insert-exit-hook)
+                      (setq-local moder--insert-pos nil
+                                  moder--insert-activate-mark nil)))
 
-(meow-define-state normal
-  "Meow NORMAL state minor mode."
-  :lighter " [N]"
-  :keymap meow-normal-state-keymap
-  :face meow-normal-cursor)
+(moder-define-state normal
+                    "Moder NORMAL state minor mode."
+                    :lighter " [N]"
+                    :keymap moder-normal-state-keymap
+                    :face moder-normal-cursor)
 
-(meow-define-state motion
-  "Meow MOTION state minor mode."
-  :lighter " [M]"
-  :keymap meow-motion-state-keymap
-  :face meow-motion-cursor)
+(moder-define-state motion
+                    "Moder MOTION state minor mode."
+                    :lighter " [M]"
+                    :keymap moder-motion-state-keymap
+                    :face moder-motion-cursor)
 
-(meow-define-state keypad
-  "Meow KEYPAD state minor mode."
-  :lighter " [K]"
-  :face meow-keypad-cursor
-  (when meow-keypad-mode
-    (setq meow--prefix-arg current-prefix-arg
-          meow--keypad-keymap-description-activated nil
-          meow--keypad-base-keymap nil
-          meow--use-literal nil
-          meow--use-meta nil
-          meow--use-both nil)))
+(moder-define-state keypad
+                    "Moder KEYPAD state minor mode."
+                    :lighter " [K]"
+                    :face moder-keypad-cursor
+                    (when moder-keypad-mode
+                      (setq moder--prefix-arg current-prefix-arg
+                            moder--keypad-keymap-description-activated nil
+                            moder--keypad-base-keymap nil
+                            moder--use-literal nil
+                            moder--use-meta nil
+                            moder--use-both nil)))
 
-(meow-define-state beacon
-  "Meow BEACON state minor mode."
-  :lighter " [B]"
-  :keymap meow-beacon-state-keymap
-  :face meow-beacon-cursor
-  (if meow-beacon-mode
-      (progn
-        (setq meow--beacon-backup-hl-line (bound-and-true-p hl-line-mode)
-              meow--beacon-defining-kbd-macro nil)
-        (hl-line-mode -1))
-    (when meow--beacon-backup-hl-line
-      (hl-line-mode 1))))
+(moder-define-state beacon
+                    "Moder BEACON state minor mode."
+                    :lighter " [B]"
+                    :keymap moder-beacon-state-keymap
+                    :face moder-beacon-cursor
+                    (if moder-beacon-mode
+                        (progn
+                          (setq moder--beacon-backup-hl-line (bound-and-true-p hl-line-mode)
+                                moder--beacon-defining-kbd-macro nil)
+                          (hl-line-mode -1))
+                      (when moder--beacon-backup-hl-line
+                        (hl-line-mode 1))))
 
 ;;;###autoload
-(define-minor-mode meow-mode
-  "Meow minor mode.
+(define-minor-mode moder-mode
+  "Moder minor mode.
 
-This minor mode is used by meow-global-mode, should not be enabled directly."
+This minor mode is used by moder-global-mode, should not be enabled directly."
   :init-value nil
   :interactive nil
   :global nil
-  :keymap meow-keymap
-  (if meow-mode
-      (meow--enable)
-    (meow--disable)))
+  :keymap moder-keymap
+  (if moder-mode
+      (moder--enable)
+    (moder--disable)))
 
 ;;;###autoload
-(defun meow-indicator ()
+(defun moder-indicator ()
   "Indicator showing current mode."
-  (or meow--indicator (meow--update-indicator)))
+  (or moder--indicator (moder--update-indicator)))
 
 ;;;###autoload
-(define-global-minor-mode meow-global-mode meow-mode
+(define-global-minor-mode moder-global-mode moder-mode
   (lambda ()
     (unless (minibufferp)
-      (meow-mode 1)))
-  :group 'meow
-  (if meow-mode
-      (meow--global-enable)
-    (meow--global-disable)))
+      (moder-mode 1)))
+  :group 'moder
+  (if moder-mode
+      (moder--global-enable)
+    (moder--global-disable)))
 
-(defun meow--enable ()
-  "Enable Meow.
+(defun moder--enable ()
+  "Enable Moder.
 
 This function will switch to the proper state for current major
-mode. Firstly, the variable `meow-mode-state-list' will be used.
+mode. Firstly, the variable `moder-mode-state-list' will be used.
 If current major mode derived from any mode from the list,
 specified state will be used.  When no result is found, give a
 test on the commands bound to the keys a-z. If any of the command
@@ -129,71 +129,71 @@ Otherwise, MOTION state will be used.
 
 Note: When this function is called, NORMAL state is already
 enabled.  NORMAL state is enabled globally when
-`meow-global-mode' is used, because in `fundamental-mode',
-there's no chance for meow to call an init function."
-  (let ((state (meow--mode-get-state)))
-    (meow--disable-current-state)
-    (meow--switch-state state t)))
+`moder-global-mode' is used, because in `fundamental-mode',
+there's no chance for moder to call an init function."
+  (let ((state (moder--mode-get-state)))
+    (moder--disable-current-state)
+    (moder--switch-state state t)))
 
-(defun meow--disable ()
-  "Disable Meow."
-  (mapc (lambda (state-mode) (funcall (cdr state-mode) -1)) meow-state-mode-alist)
-  (meow--beacon-remove-overlays)
+(defun moder--disable ()
+  "Disable Moder."
+  (mapc (lambda (state-mode) (funcall (cdr state-mode) -1)) moder-state-mode-alist)
+  (moder--beacon-remove-overlays)
   (when (secondary-selection-exist-p)
-    (meow--cancel-second-selection)))
+    (moder--cancel-second-selection)))
 
-(defun meow--enable-theme-advice (theme)
+(defun moder--enable-theme-advice (theme)
   "Prepare face if the THEME to enable is `user'."
   (when (eq theme 'user)
-    (meow--prepare-face)))
+    (moder--prepare-face)))
 
-(defun meow--global-enable ()
-  "Enable meow globally."
-  (setq-default meow-normal-mode t)
-  (meow--init-buffers)
-  (add-hook 'window-state-change-functions #'meow--on-window-state-change)
-  (add-hook 'minibuffer-setup-hook #'meow--minibuffer-setup)
-  (add-hook 'pre-command-hook 'meow--highlight-pre-command)
-  (add-hook 'post-command-hook 'meow--maybe-toggle-beacon-state)
-  (add-hook 'suspend-hook 'meow--on-exit)
-  (add-hook 'suspend-resume-hook 'meow--update-cursor)
-  (add-hook 'kill-emacs-hook 'meow--on-exit)
-  (add-hook 'desktop-after-read-hook 'meow--init-buffers)
+(defun moder--global-enable ()
+  "Enable moder globally."
+  (setq-default moder-normal-mode t)
+  (moder--init-buffers)
+  (add-hook 'window-state-change-functions #'moder--on-window-state-change)
+  (add-hook 'minibuffer-setup-hook #'moder--minibuffer-setup)
+  (add-hook 'pre-command-hook 'moder--highlight-pre-command)
+  (add-hook 'post-command-hook 'moder--maybe-toggle-beacon-state)
+  (add-hook 'suspend-hook 'moder--on-exit)
+  (add-hook 'suspend-resume-hook 'moder--update-cursor)
+  (add-hook 'kill-emacs-hook 'moder--on-exit)
+  (add-hook 'desktop-after-read-hook 'moder--init-buffers)
 
-  (meow--enable-shims)
-  ;; meow-esc-mode fix ESC in TUI
-  (meow-esc-mode 1)
-  ;; raise Meow keymap priority
+  (moder--enable-shims)
+  ;; moder-esc-mode fix ESC in TUI
+  (moder-esc-mode 1)
+  ;; raise Moder keymap priority
   (add-to-ordered-list 'emulation-mode-map-alists
-                       `((meow-motion-mode . ,meow-motion-state-keymap)))
+                       `((moder-motion-mode . ,moder-motion-state-keymap)))
   (add-to-ordered-list 'emulation-mode-map-alists
-                       `((meow-normal-mode . ,meow-normal-state-keymap)))
+                       `((moder-normal-mode . ,moder-normal-state-keymap)))
   (add-to-ordered-list 'emulation-mode-map-alists
-                       `((meow-beacon-mode . ,meow-beacon-state-keymap)))
-  (when meow-use-cursor-position-hack
-    (setq redisplay-highlight-region-function #'meow--redisplay-highlight-region-function)
-    (setq redisplay-unhighlight-region-function #'meow--redisplay-unhighlight-region-function))
-  (meow--prepare-face)
-  (advice-add 'enable-theme :after 'meow--enable-theme-advice))
+                       `((moder-beacon-mode . ,moder-beacon-state-keymap)))
+  (when moder-use-cursor-position-hack
+    (setq redisplay-highlight-region-function #'moder--redisplay-highlight-region-function)
+    (setq redisplay-unhighlight-region-function #'moder--redisplay-unhighlight-region-function))
+  (moder--prepare-face)
+  (advice-add 'enable-theme :after 'moder--enable-theme-advice))
 
-(defun meow--global-disable ()
-  "Disable Meow globally."
-  (setq-default meow-normal-mode nil)
-  (remove-hook 'window-state-change-functions #'meow--on-window-state-change)
-  (remove-hook 'minibuffer-setup-hook #'meow--minibuffer-setup)
-  (remove-hook 'pre-command-hook 'meow--highlight-pre-command)
-  (remove-hook 'post-command-hook 'meow--maybe-toggle-beacon-state)
-  (remove-hook 'suspend-hook 'meow--on-exit)
-  (remove-hook 'suspend-resume-hook 'meow--update-cursor)
-  (remove-hook 'kill-emacs-hook 'meow--on-exit)
-  (remove-hook 'desktop-after-read-hook 'meow--init-buffers)
-  (meow--disable-shims)
-  (meow--remove-modeline-indicator)
-  (when meow-use-cursor-position-hack
-    (setq redisplay-highlight-region-function meow--backup-redisplay-highlight-region-function)
-    (setq redisplay-unhighlight-region-function meow--backup-redisplay-unhighlight-region-function))
-  (meow-esc-mode -1)
-  (advice-remove 'enable-theme 'meow--enable-theme-advice))
+(defun moder--global-disable ()
+  "Disable Moder globally."
+  (setq-default moder-normal-mode nil)
+  (remove-hook 'window-state-change-functions #'moder--on-window-state-change)
+  (remove-hook 'minibuffer-setup-hook #'moder--minibuffer-setup)
+  (remove-hook 'pre-command-hook 'moder--highlight-pre-command)
+  (remove-hook 'post-command-hook 'moder--maybe-toggle-beacon-state)
+  (remove-hook 'suspend-hook 'moder--on-exit)
+  (remove-hook 'suspend-resume-hook 'moder--update-cursor)
+  (remove-hook 'kill-emacs-hook 'moder--on-exit)
+  (remove-hook 'desktop-after-read-hook 'moder--init-buffers)
+  (moder--disable-shims)
+  (moder--remove-modeline-indicator)
+  (when moder-use-cursor-position-hack
+    (setq redisplay-highlight-region-function moder--backup-redisplay-highlight-region-function)
+    (setq redisplay-unhighlight-region-function moder--backup-redisplay-unhighlight-region-function))
+  (moder-esc-mode -1)
+  (advice-remove 'enable-theme 'moder--enable-theme-advice))
 
-(provide 'meow-core)
-;;; meow-core.el ends here
+(provide 'moder-core)
+;;; moder-core.el ends here

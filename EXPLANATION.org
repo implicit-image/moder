@@ -20,24 +20,24 @@ And there are 3 rules that decide the behavior of a movement
 - *RULE 1* commands except for char/word/symbol have no opinion on direction, they will follow the current direction when meet same selection type.
 - *RULE 2* a selection will be expanded if the movement and current selection have the same type, and the current selection is expandable.
 - *RULE 3* these commands create an expandable selection:
-  - ~meow-*-expand~
-  - ~meow-mark-word~
-  - ~meow-mark-symbol~
-  - ~meow-line~
+  - ~moder-*-expand~
+  - ~moder-mark-word~
+  - ~moder-mark-symbol~
+  - ~moder-line~
 
 It sounds complicated at first. But it will be seamless once you get used to it.
 
 A few cases to help you understand.
 
-*CASE 1* To select 3 lines, do ~meow-line~ 3 times. ~meow-line~ will create an expandable line selection.
+*CASE 1* To select 3 lines, do ~moder-line~ 3 times. ~moder-line~ will create an expandable line selection.
 
-*CASE 2* To reverse select 3 lines, do ~negative-argument~, then ~meow-line~ 3 times. ~line~ will follow the direction.
+*CASE 2* To reverse select 3 lines, do ~negative-argument~, then ~moder-line~ 3 times. ~line~ will follow the direction.
 
-*CASE 3* To select the previous, current and next words, do ~meow-mark-word~, ~meow-back-word~ and ~meow-next-word~.
-Back and next will expand, because ~meow-mark-word~ creates an *expandable word* selection.
+*CASE 3* To select the previous, current and next words, do ~moder-mark-word~, ~moder-back-word~ and ~moder-next-word~.
+Back and next will expand, because ~moder-mark-word~ creates an *expandable word* selection.
 
-*CASE 4* To select the next word, do ~meow-next-word~ twice.
-The current word won't be selected because ~meow-next-word~ will create a *nonexpandable word* selection.
+*CASE 4* To select the next word, do ~moder-next-word~ twice.
+The current word won't be selected because ~moder-next-word~ will create a *nonexpandable word* selection.
 
 ** Secondary Selection
 
@@ -46,11 +46,11 @@ It can be a range or just a single point.
 
 Since the secondary selection has no relation to the cursor, there are a lot features built on top of it.
 
-*FEATURE 1* For text swap. See command ~meow-swap-grab~ and ~meow-sync-grab~.
+*FEATURE 1* For text swap. See command ~moder-swap-grab~ and ~moder-sync-grab~.
 
-*FEATURE 2* To represent a range for kmacro application. See Meow BEACON state.
+*FEATURE 2* To represent a range for kmacro application. See Moder BEACON state.
 
-*FEATURE 3* To mark a text to be inserted in the minibuffer prompt later. See ~meow-grab-fill-commands~.
+*FEATURE 3* To mark a text to be inserted in the minibuffer prompt later. See ~moder-grab-fill-commands~.
 
 ** Multiedit
 
@@ -138,11 +138,11 @@ counter example: whenever number of cursors > 100
 
 After each time you type, multiple cursors has to run hooks, backup/restore variables for all cursors
 
-*** The answer from Meow
+*** The answer from Moder
 
-Meow embraces kmacro, and tries to improve the experience by collapsing undo boundary and introducing BEACON state.
+Moder embraces kmacro, and tries to improve the experience by collapsing undo boundary and introducing BEACON state.
 
-(text-mode is used here, no additional setup required, assuming meow-setup for Qwerty is used)
+(text-mode is used here, no additional setup required, assuming moder-setup for Qwerty is used)
 
 **** case 1
 
@@ -154,7 +154,7 @@ Meow embraces kmacro, and tries to improve the experience by collapsing undo bou
 
 [[file:https://user-images.githubusercontent.com/11796018/144555848-2ec72117-231a-4e5e-a954-a5ae59638b06.gif]]
 
-- select the whole content, then activate a secondary selection with ~G(meow-grab)~
+- select the whole content, then activate a secondary selection with ~G(moder-grab)~
 - ~b(back-word)~ to create fake cursors at each word beginning
 - ~F3~ to start macro recording
 - type
@@ -170,9 +170,9 @@ x_y_foo_bar_baz
 
 [[file:https://user-images.githubusercontent.com/11796018/144555855-78d98a7d-fc1a-4399-8dee-467516ffbae3.gif]]
 
-- select the whole content, then activate a secondary selection with ~G(meow-grab)~
-- ~-(negative-argument) f(meow-find) -~ to search backwards for the character ~-~, which will create a fake cursor at each ~-~
-- quick start recording and switch to insert state with ~c(meow-change)~ (the character under the current cursor is deleted)
+- select the whole content, then activate a secondary selection with ~G(moder-grab)~
+- ~-(negative-argument) f(moder-find) -~ to search backwards for the character ~-~, which will create a fake cursor at each ~-~
+- quick start recording and switch to insert state with ~c(moder-change)~ (the character under the current cursor is deleted)
 - type ~_~
 - ~ESC~ to go back to NORMAL, then the macro will be applied to all fake cursors.
 
@@ -190,11 +190,11 @@ bar-3-foo
 
 [[file:https://user-images.githubusercontent.com/11796018/144555869-3ad3f571-3762-4805-8778-26c3bc45151a.gif]]
 
-- select the whole content, then activate a secondary selection with ~G(meow-grab)~
-- ~x(meow-line)~ to create fake regions at each line
+- select the whole content, then activate a secondary selection with ~G(moder-grab)~
+- ~x(moder-line)~ to create fake regions at each line
 - ~F3~ to start macro recording (default fake cursors are in the same column)
-- select bar with ~w(mark-word)~, then activate a secondary selection with ~G(meow-grab)~
-- select foo, swap with the secondary selection with ~R(meow-swap-grab)~.
+- select bar with ~w(mark-word)~, then activate a secondary selection with ~G(moder-grab)~
+- select foo, swap with the secondary selection with ~R(moder-swap-grab)~.
 - ~F4~ to end macro recording and apply to all fake cursors
 
 **** case 4
@@ -208,9 +208,9 @@ baz foo baz
 
 [[file:https://user-images.githubusercontent.com/11796018/144555875-1e59ada8-0f17-43aa-bf9d-f5c0883859ff.gif]]
 
-- select the whole content, then activate a secondary selection with ~G(meow-grab)~
+- select the whole content, then activate a secondary selection with ~G(moder-grab)~
 - move to bar, select it with ~w(mark-word)~ , create fake regions at each bar
-- quick start recording and switch to insert state with ~c(meow-change)~ (current bar is deleted)
+- quick start recording and switch to insert state with ~c(moder-change)~ (current bar is deleted)
 - type baz
 - ~ESC~ to go back to NORMAL, then the macro will be applied to all fake regions.
 
@@ -218,7 +218,7 @@ baz foo baz
 
 Why another modal editing package in Emacs?
 
-Emacs is the one editor with the most modal editing schemes in the world. Before I started working on Meow, there were a few options (listed at the end).
+Emacs is the one editor with the most modal editing schemes in the world. Before I started working on Moder, there were a few options (listed at the end).
 
 Unfortunately, none of them satisfy me. I want a modal editing with the following features.
 
@@ -295,7 +295,7 @@ xah-fly-keys has a pre-defined leader keymap, I don't think it's enough for my c
 [[https://github.com/jyp/boon][boon]]
 
 Boon has an efficient command layout, a good approach to executing commands without modifier keys.
-It's very close to what I wanted before I started with Meow.
+It's very close to what I wanted before I started with Moder.
 
 Boon integrates with expand-region, multiple-cursors, avy, etc. I think we can have a better way for these purposes.
 

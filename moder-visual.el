@@ -1,4 +1,4 @@
-;;; meow-visual.el --- Visual effect in Meow  -*- lexical-binding: t; -*-
+;;; moder-visual.el --- Visual effect in Moder  -*- lexical-binding: t; -*-
 
 ;; This file is not part of GNU Emacs.
 
@@ -19,7 +19,7 @@
 
 
 ;;; Commentary:
-;; Implementation for all commands in Meow.
+;; Implementation for all commands in Moder.
 
 ;;; Code:
 
@@ -27,88 +27,88 @@
 (require 'subr-x)
 (require 'pcase)
 
-(require 'meow-var)
-(require 'meow-util)
+(require 'moder-var)
+(require 'moder-util)
 
 (declare-function hl-line-highlight "hl-line")
 
-(defvar meow--expand-overlays nil
+(defvar moder--expand-overlays nil
   "Overlays used to highlight expand hints in buffer.")
 
-(defvar meow--match-overlays nil
+(defvar moder--match-overlays nil
   "Overlays used to highlight matches in buffer.")
 
-(defvar meow--search-indicator-overlay nil
+(defvar moder--search-indicator-overlay nil
   "Overlays used to display search indicator in current line.")
 
-(defvar-local meow--search-indicator-state nil
+(defvar-local moder--search-indicator-state nil
   "The state for search indicator.
 
 Value is a list of (last-regexp last-pos idx cnt).")
 
-(defvar meow--dont-remove-overlay nil
+(defvar moder--dont-remove-overlay nil
   "Indicate we should prevent removing overlay for once.")
 
-(defvar meow--highlight-timer nil
+(defvar moder--highlight-timer nil
   "Timer for highlight cleaner.")
 
-(defun meow--remove-expand-highlights ()
-  (mapc #'delete-overlay meow--expand-overlays)
-  (setq meow--expand-overlays nil))
+(defun moder--remove-expand-highlights ()
+  (mapc #'delete-overlay moder--expand-overlays)
+  (setq moder--expand-overlays nil))
 
-(defun meow--remove-match-highlights ()
-  (mapc #'delete-overlay meow--match-overlays)
-  (setq meow--match-overlays nil))
+(defun moder--remove-match-highlights ()
+  (mapc #'delete-overlay moder--match-overlays)
+  (setq moder--match-overlays nil))
 
-(defun meow--remove-search-highlight ()
-  (when meow--search-indicator-overlay
-    (delete-overlay meow--search-indicator-overlay)))
+(defun moder--remove-search-highlight ()
+  (when moder--search-indicator-overlay
+    (delete-overlay moder--search-indicator-overlay)))
 
-(defun meow--clean-search-indicator-state ()
-  (setq meow--search-indicator-overlay nil
-        meow--search-indicator-state nil))
+(defun moder--clean-search-indicator-state ()
+  (setq moder--search-indicator-overlay nil
+        moder--search-indicator-state nil))
 
-(defun meow--remove-search-indicator ()
-  (meow--remove-search-highlight)
-  (meow--clean-search-indicator-state))
+(defun moder--remove-search-indicator ()
+  (moder--remove-search-highlight)
+  (moder--clean-search-indicator-state))
 
-(defun meow--show-indicator (pos idx cnt)
+(defun moder--show-indicator (pos idx cnt)
   (goto-char pos)
   (goto-char (line-end-position))
   (if (= (point) (point-max))
       (let ((ov (make-overlay (point) (point))))
-        (overlay-put ov 'after-string (propertize (format " [%d/%d]" idx cnt) 'face 'meow-search-indicator))
-        (setq meow--search-indicator-overlay ov))
+        (overlay-put ov 'after-string (propertize (format " [%d/%d]" idx cnt) 'face 'moder-search-indicator))
+        (setq moder--search-indicator-overlay ov))
     (let ((ov (make-overlay (point) (1+ (point)))))
-      (overlay-put ov 'display (propertize (format " [%d/%d] \n" idx cnt) 'face 'meow-search-indicator))
-      (setq meow--search-indicator-overlay ov))))
+      (overlay-put ov 'display (propertize (format " [%d/%d] \n" idx cnt) 'face 'moder-search-indicator))
+      (setq moder--search-indicator-overlay ov))))
 
-(defun meow--highlight-match ()
+(defun moder--highlight-match ()
   (let ((beg (match-beginning 0))
         (end (match-end 0)))
     (unless (cl-find-if (lambda (it)
-                          (overlay-get it 'meow))
+                          (overlay-get it 'moder))
                         (overlays-at beg))
       (let ((ov (make-overlay beg end)))
-        (overlay-put ov 'face 'meow-search-highlight)
+        (overlay-put ov 'face 'moder-search-highlight)
         (overlay-put ov 'priority 0)
-        (overlay-put ov 'meow t)
-        (push ov meow--match-overlays)))))
+        (overlay-put ov 'moder t)
+        (push ov moder--match-overlays)))))
 
-(defun meow--highlight-regexp-in-buffer (regexp)
+(defun moder--highlight-regexp-in-buffer (regexp)
   "Highlight all regexp in this buffer."
-  (when (and (meow-normal-mode-p)
+  (when (and (moder-normal-mode-p)
              (region-active-p))
-    (meow--remove-expand-highlights)
+    (moder--remove-expand-highlights)
     (let* ((cnt 0)
            (idx 0)
            (pos (region-end))
            (hl-start (max (point-min) (- (point) 3000)))
            (hl-end (min (point-max) (+ (point) 3000))))
-      (setq meow--expand-nav-function nil)
-      (setq meow--visual-command this-command)
+      (setq moder--expand-nav-function nil)
+      (setq moder--visual-command this-command)
       (save-mark-and-excursion
-        (meow--remove-search-indicator)
+        (moder--remove-search-indicator)
         (let ((case-fold-search nil))
           (goto-char (point-min))
           (while (re-search-forward regexp (point-max) t)
@@ -116,13 +116,13 @@ Value is a list of (last-regexp last-pos idx cnt).")
             (when (<= (match-beginning 0) pos (match-end 0))
               (setq idx cnt))
             (when (<= hl-start (point) hl-end)
-              (meow--highlight-match)))
-          (meow--show-indicator pos idx cnt))))))
+              (moder--highlight-match)))
+          (moder--show-indicator pos idx cnt))))))
 
-(defun meow--format-full-width-number (n)
-  (alist-get n meow-full-width-number-position-chars))
+(defun moder--format-full-width-number (n)
+  (alist-get n moder-full-width-number-position-chars))
 
-(defun meow--highlight-num-positions-1 (nav-function faces bound)
+(defun moder--highlight-num-positions-1 (nav-function faces bound)
   (save-mark-and-excursion
     (let ((pos (point))
           (i 1))
@@ -149,63 +149,63 @@ Value is a list of (last-regexp last-pos idx cnt).")
                               (before-tab
                                (overlay-put ov 'display (concat (propertize (format "%s" n) 'face face) "\t")))
                               (before-full-width-char
-                               (overlay-put ov 'display (propertize (format "%s" (meow--format-full-width-number n)) 'face face)))
+                               (overlay-put ov 'display (propertize (format "%s" (moder--format-full-width-number n)) 'face face)))
                               (t
                                (overlay-put ov 'display (propertize (format "%s" n) 'face face))))
-                             (push ov meow--expand-overlays)
+                             (push ov moder--expand-overlays)
                              (cl-incf i))))
                      (cl-return))
                  (cl-return))))))
 
-(defun meow--highlight-num-positions (num)
-  (setq meow--visual-command this-command)
-  (meow--remove-expand-highlights)
-  (meow--remove-match-highlights)
-  (meow--remove-search-indicator)
+(defun moder--highlight-num-positions (num)
+  (setq moder--visual-command this-command)
+  (moder--remove-expand-highlights)
+  (moder--remove-match-highlights)
+  (moder--remove-search-indicator)
   (let ((bound (cons (window-start) (window-end)))
         (faces (seq-take
-                (if (meow--direction-backward-p)
+                (if (moder--direction-backward-p)
                     (seq-concatenate
                      'list
-                     (make-list 10 'meow-position-highlight-reverse-number-1)
-                     (make-list 10 'meow-position-highlight-reverse-number-2)
-                     (make-list 10 'meow-position-highlight-reverse-number-3))
+                     (make-list 10 'moder-position-highlight-reverse-number-1)
+                     (make-list 10 'moder-position-highlight-reverse-number-2)
+                     (make-list 10 'moder-position-highlight-reverse-number-3))
                   (seq-concatenate
                    'list
-                   (make-list 10 'meow-position-highlight-number-1)
-                   (make-list 10 'meow-position-highlight-number-2)
-                   (make-list 10 'meow-position-highlight-number-3)))
+                   (make-list 10 'moder-position-highlight-number-1)
+                   (make-list 10 'moder-position-highlight-number-2)
+                   (make-list 10 'moder-position-highlight-number-3)))
                 num))
-        (nav-function (if (meow--direction-backward-p)
-                          (car meow--expand-nav-function)
-                        (cdr meow--expand-nav-function))))
-    (meow--highlight-num-positions-1 nav-function faces bound)
-    (when meow--highlight-timer
-      (cancel-timer meow--highlight-timer)
-      (setq meow--highlight-timer nil))
-    (setq meow--highlight-timer
+        (nav-function (if (moder--direction-backward-p)
+                          (car moder--expand-nav-function)
+                        (cdr moder--expand-nav-function))))
+    (moder--highlight-num-positions-1 nav-function faces bound)
+    (when moder--highlight-timer
+      (cancel-timer moder--highlight-timer)
+      (setq moder--highlight-timer nil))
+    (setq moder--highlight-timer
           (run-at-time
            (time-add (current-time)
-                     (seconds-to-time meow-expand-hint-remove-delay))
+                     (seconds-to-time moder-expand-hint-remove-delay))
            nil
-           #'meow--remove-expand-highlights))))
+           #'moder--remove-expand-highlights))))
 
-(defun meow--select-expandable-p ()
-  (when (meow-normal-mode-p)
-    (when-let* ((sel (meow--selection-type)))
+(defun moder--select-expandable-p ()
+  (when (moder-normal-mode-p)
+    (when-let* ((sel (moder--selection-type)))
       (let ((type (cdr sel)))
         (member type '(word symbol line block find till))))))
 
-(defun meow--maybe-highlight-num-positions (&optional nav-functions)
-  (when (and (meow-normal-mode-p)
-             (meow--select-expandable-p))
-    (setq meow--expand-nav-function (or nav-functions meow--expand-nav-function))
-    (when (and (not (member major-mode meow-expand-exclude-mode-list))
-               meow--expand-nav-function)
+(defun moder--maybe-highlight-num-positions (&optional nav-functions)
+  (when (and (moder-normal-mode-p)
+             (moder--select-expandable-p))
+    (setq moder--expand-nav-function (or nav-functions moder--expand-nav-function))
+    (when (and (not (member major-mode moder-expand-exclude-mode-list))
+               moder--expand-nav-function)
       (let ((num (or
-                  (alist-get (cdr (meow--selection-type)) meow-expand-hint-counts)
+                  (alist-get (cdr (moder--selection-type)) moder-expand-hint-counts)
                   0)))
-        (meow--highlight-num-positions num)))))
+        (moder--highlight-num-positions num)))))
 
-(provide 'meow-visual)
-;;; meow-visual.el ends here
+(provide 'moder-visual)
+;;; moder-visual.el ends here

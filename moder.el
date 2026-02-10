@@ -1,10 +1,10 @@
-;;; meow.el --- Yet Another modal editing -*- lexical-binding: t; -*-
+;;; moder.el --- Yet Another modal editing -*- lexical-binding: t; -*-
 
 ;; Author: Shi Tianshu
 ;; Keywords: convenience, modal-editing
 ;; Package-Requires: ((emacs "27.1"))
 ;; Version: 1.5.0
-;; URL: https://www.github.com/DogLooksGood/meow
+;; URL: https://www.github.com/DogLooksGood/moder
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -25,22 +25,22 @@
 
 ;;; Commentary:
 
-;; Enable `meow-global-mode' to activate modal editing.
+;; Enable `moder-global-mode' to activate modal editing.
 
 ;;; Code:
 
 ;;; Modules
 
-(require 'meow-var)
-(require 'meow-face)
-(require 'meow-keymap)
-(require 'meow-helpers)
-(require 'meow-util)
-(require 'meow-keypad)
-(require 'meow-command)
-(require 'meow-core)
-(require 'meow-cheatsheet)
-(require 'meow-tutor)
+(require 'moder-var)
+(require 'moder-face)
+(require 'moder-keymap)
+(require 'moder-helpers)
+(require 'moder-util)
+(require 'moder-keypad)
+(require 'moder-command)
+(require 'moder-core)
+(require 'moder-cheatsheet)
+(require 'moder-tutor)
 
-(provide 'meow)
-;;; meow.el ends here
+(provide 'moder)
+;;; moder.el ends here

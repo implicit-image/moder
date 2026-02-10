@@ -1,4 +1,4 @@
-;;; meow-cheatsheet.el --- Cheatsheet for Meow  -*- lexical-binding: t; -*-
+;;; moder-cheatsheet.el --- Cheatsheet for Moder  -*- lexical-binding: t; -*-
 
 ;; This file is not part of GNU Emacs.
 
@@ -18,59 +18,59 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-;; Cheatsheet for Meow.
+;; Cheatsheet for Moder.
 
 ;;; Code:
 
-(require 'meow-var)
-(require 'meow-util)
-(require 'meow-cheatsheet-layout)
+(require 'moder-var)
+(require 'moder-util)
+(require 'moder-cheatsheet-layout)
 
-(defconst meow--cheatsheet-note
+(defconst moder--cheatsheet-note
   (format "
 NOTE:
 %s means this command will expand current region.
-" (propertize "ex" 'face 'meow-cheatsheet-highlight)))
+" (propertize "ex" 'face 'moder-cheatsheet-highlight)))
 
-(defun meow--render-cheatsheet-thing-table ()
+(defun moder--render-cheatsheet-thing-table ()
   (concat
    (format
     "%s, %s, %s and %s require a %s as input:\n"
-    (propertize "←thing→ (inner)" 'face 'meow-cheatsheet-highlight)
-    (propertize "[thing] (bounds)" 'face 'meow-cheatsheet-highlight)
-    (propertize "←thing (begin)" 'face 'meow-cheatsheet-highlight)
-    (propertize "thing→ (end)" 'face 'meow-cheatsheet-highlight)
-    (propertize "THING" 'face 'meow-cheatsheet-highlight))
-   (meow--cheatsheet-render-char-thing-table 'meow-cheatsheet-highlight)))
+    (propertize "←thing→ (inner)" 'face 'moder-cheatsheet-highlight)
+    (propertize "[thing] (bounds)" 'face 'moder-cheatsheet-highlight)
+    (propertize "←thing (begin)" 'face 'moder-cheatsheet-highlight)
+    (propertize "thing→ (end)" 'face 'moder-cheatsheet-highlight)
+    (propertize "THING" 'face 'moder-cheatsheet-highlight))
+   (moder--cheatsheet-render-char-thing-table 'moder-cheatsheet-highlight)))
 
-(defvar meow-cheatsheet-physical-layout meow-cheatsheet-physical-layout-ansi
+(defvar moder-cheatsheet-physical-layout moder-cheatsheet-physical-layout-ansi
   "Physical keyboard layout used to display cheatsheet.
 
-Currently `meow-cheatsheet-physical-layout-ansi' is supported.")
+Currently `moder-cheatsheet-physical-layout-ansi' is supported.")
 
-(defvar meow-cheatsheet-layout meow-cheatsheet-layout-qwerty
+(defvar moder-cheatsheet-layout moder-cheatsheet-layout-qwerty
   "Keyboard layout used to display cheatsheet.
 
-Currently `meow-cheatsheet-layout-qwerty', `meow-cheatsheet-layout-dvorak',
-`meow-cheatsheet-layout-dvp' and `meow-cheatsheet-layout-colemak' is supported.")
+Currently `moder-cheatsheet-layout-qwerty', `moder-cheatsheet-layout-dvorak',
+`moder-cheatsheet-layout-dvp' and `moder-cheatsheet-layout-colemak' is supported.")
 
-(defun meow--short-command-name (cmd)
+(defun moder--short-command-name (cmd)
   (or
    (when (symbolp cmd)
      (when-let* ((s
-                  (or (alist-get cmd meow-command-to-short-name-list)
+                  (or (alist-get cmd moder-command-to-short-name-list)
                       (cl-case cmd
                         (undefined "")
                         (t (thread-last
                              (symbol-name cmd)
-                             (replace-regexp-in-string "meow-" "")))))))
+                             (replace-regexp-in-string "moder-" "")))))))
        (if (<= (length s) 9)
            (format "% 9s" s)
-         (meow--truncate-string 9 s meow-cheatsheet-ellipsis))))
+         (moder--truncate-string 9 s moder-cheatsheet-ellipsis))))
    "         "))
 
-(defun meow--cheatsheet-replace-keysyms ()
-  (dolist (it meow-cheatsheet-layout)
+(defun moder--cheatsheet-replace-keysyms ()
+  (dolist (it moder-cheatsheet-layout)
     (let* ((keysym (car it))
            (lower (cadr it))
            (upper (caddr it))
@@ -85,7 +85,7 @@ Currently `meow-cheatsheet-layout-qwerty', `meow-cheatsheet-layout-dvorak',
           (forward-line 1)
           (forward-char x)
           (delete-char -9)
-          (insert (propertize (meow--short-command-name upper-cmd) 'face 'meow-cheatsheet-highlight))
+          (insert (propertize (moder--short-command-name upper-cmd) 'face 'moder-cheatsheet-highlight))
           (forward-line 2)
           (forward-char x)
           (delete-char -9)
@@ -93,9 +93,9 @@ Currently `meow-cheatsheet-layout-qwerty', `meow-cheatsheet-layout-dvorak',
           (forward-line 1)
           (forward-char x)
           (delete-char -9)
-          (insert (propertize (meow--short-command-name lower-cmd) 'face 'meow-cheatsheet-highlight)))))))
+          (insert (propertize (moder--short-command-name lower-cmd) 'face 'moder-cheatsheet-highlight)))))))
 
-(defun meow--cheatsheet-render-char-thing-table (&optional key-face)
+(defun moder--cheatsheet-render-char-thing-table (&optional key-face)
   (let* ((ww (frame-width))
          (w 16)
          (col (min 5 (/ ww w))))
@@ -110,33 +110,33 @@ Currently `meow-cheatsheet-layout-qwerty', `meow-cheatsheet-layout-dvorak',
                    (if (= (1- col) (mod idx col))
                        "\n"
                      " "))))
-       meow-char-thing-table)
+       moder-char-thing-table)
       (string-join)
       (string-trim-right))))
 
-(defun meow-cheatsheet ()
+(defun moder-cheatsheet ()
   (interactive)
   (cond
-   ((not meow-cheatsheet-physical-layout)
-    (message "`meow-cheatsheet-physical-layout' is not specified"))
-   ((not meow-cheatsheet-layout)
-    (message "`meow-cheatsheet-layout' is not specified"))
+   ((not moder-cheatsheet-physical-layout)
+    (message "`moder-cheatsheet-physical-layout' is not specified"))
+   ((not moder-cheatsheet-layout)
+    (message "`moder-cheatsheet-layout' is not specified"))
    (t
-    (let ((buf (get-buffer-create (format "*Meow Cheatsheet*"))))
-    (with-current-buffer buf
-      (text-mode)
-      (setq buffer-read-only nil)
-      (erase-buffer)
-      (apply #'insert (make-list 63 " "))
-      (insert "Meow Cheatsheet\n")
-      (insert meow-cheatsheet-physical-layout)
-      (meow--cheatsheet-replace-keysyms)
-      (goto-char (point-max))
-      (insert meow--cheatsheet-note)
-      (insert (meow--render-cheatsheet-thing-table))
-      (add-face-text-property (point-min) (point-max) 'meow-cheatsheet-command)
-      (setq buffer-read-only t))
-    (switch-to-buffer buf)))))
+    (let ((buf (get-buffer-create (format "*Moder Cheatsheet*"))))
+      (with-current-buffer buf
+        (text-mode)
+        (setq buffer-read-only nil)
+        (erase-buffer)
+        (apply #'insert (make-list 63 " "))
+        (insert "Moder Cheatsheet\n")
+        (insert moder-cheatsheet-physical-layout)
+        (moder--cheatsheet-replace-keysyms)
+        (goto-char (point-max))
+        (insert moder--cheatsheet-note)
+        (insert (moder--render-cheatsheet-thing-table))
+        (add-face-text-property (point-min) (point-max) 'moder-cheatsheet-command)
+        (setq buffer-read-only t))
+      (switch-to-buffer buf)))))
 
-(provide 'meow-cheatsheet)
-;;; meow-cheatsheet.el ends here
+(provide 'moder-cheatsheet)
+;;; moder-cheatsheet.el ends here

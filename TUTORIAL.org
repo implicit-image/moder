@@ -2,34 +2,34 @@
 
 * Read before start
 
-Meow will find underlying commands based on keybindings. You may find abnormal behaviour if you changed
-some default keybindings.  For example: forward-char on ~C-f~ is used by ~meow-right~. If you changed this keybinding,
-you have to change variable ~meow--kbd-forward-char~ to the correct value.
+Moder will find underlying commands based on keybindings. You may find abnormal behaviour if you changed
+some default keybindings.  For example: forward-char on ~C-f~ is used by ~moder-right~. If you changed this keybinding,
+you have to change variable ~moder--kbd-forward-char~ to the correct value.
 
 Example:
 
 #+BEGIN_SRC emacs-lisp
-  (setq meow--kbd-forward-char "<right>")
+  (setq moder--kbd-forward-char "<right>")
 
   ;; or bind it to the function directly
-  (setq meow--kbd-forward-char #'forward-char)
+  (setq moder--kbd-forward-char #'forward-char)
 #+END_SRC
 
 * Keybindings Cheat Sheet
 
 We have created some recommended configs for specific keyboard layouts that you can re-use for a quick setup.
 
-[[https://github.com/meow-edit/meow/blob/master/KEYBINDING_QWERTY.org][QWERTY]] - [[https://github.com/meow-edit/meow/blob/master/KEYBINDING_DVORAK.org][DVORAK]] - [[https://github.com/meow-edit/meow/blob/master/KEYBINDING_DVP.org][PROGRAMMER DVORAK]] - [[https://github.com/meow-edit/meow/blob/master/KEYBINDING_COLEMAK.org][COLEMAK]]
+[[https://github.com/moder-edit/moder/blob/master/KEYBINDING_QWERTY.org][QWERTY]] - [[https://github.com/moder-edit/moder/blob/master/KEYBINDING_DVORAK.org][DVORAK]] - [[https://github.com/moder-edit/moder/blob/master/KEYBINDING_DVP.org][PROGRAMMER DVORAK]] - [[https://github.com/moder-edit/moder/blob/master/KEYBINDING_COLEMAK.org][COLEMAK]]
 
-You can very easily change any of these when you setup Meow.
+You can very easily change any of these when you setup Moder.
 
 * Tutor inside Emacs
 
-There is a tutor inside Emacs after installing Meow. Open it with ~M-x meow-tutor~.
+There is a tutor inside Emacs after installing Moder. Open it with ~M-x moder-tutor~.
 
 * States
 
-Meow's modal editing has 5 states: NORMAL, INSERT, MOTION, KEYPAD and BEACON.
+Moder's modal editing has 5 states: NORMAL, INSERT, MOTION, KEYPAD and BEACON.
 In this tutorial, we will walk through these states and basic operations.
 
 #+begin_example
@@ -52,19 +52,19 @@ In this tutorial, we will walk through these states and basic operations.
 
 ** INSERT
 
-You can switch to INSERT state with ~meow-insert/append/change/open-below/open-above~.
+You can switch to INSERT state with ~moder-insert/append/change/open-below/open-above~.
 
-There's nothing special in INSERT state, except ~ESC~ is bound to ~meow-insert-exit~. Use it to go back to NORMAL state.
+There's nothing special in INSERT state, except ~ESC~ is bound to ~moder-insert-exit~. Use it to go back to NORMAL state.
 
 NOTE:
 
-If you enter INSERT state by ~meow-change~, the inserted content will be selected when you exit.
+If you enter INSERT state by ~moder-change~, the inserted content will be selected when you exit.
 
 ** NORMAL
 
 NORMAL state is the default state for text editing.
 
-For commands in NORMAL state is defined via ~meow-normal-define-key~.
+For commands in NORMAL state is defined via ~moder-normal-define-key~.
 
 [[file:COMMANDS.org][Check here for command documents]]
 
@@ -80,7 +80,7 @@ however then the original command on k/j is not accessible. To access the origin
 Here's an example: you want use ~j~ as ~next-line~ globally.
 
 #+begin_src emacs-lisp
-  (meow-motion-define-key '("j" . next-line))
+  (moder-motion-define-key '("j" . next-line))
 #+end_src
 
 The settings we made works in all special modes.
@@ -125,12 +125,12 @@ In practice, this means that your leader keybinds get stored under
 ~C-c~ and can be accessed as such. Therefore, for instance, ~C-c x~
 and ~SPC x~ are identical.
 
-This can be changed by setting ~meow-keypad-leader-dispatch~.
+This can be changed by setting ~moder-keypad-leader-dispatch~.
 
 #+begin_src emacs-lisp
   ;; Some examples
-  (setq meow-keypad-leader-dispatch "C-x") ; Dispatch to the keymap at C-x
-  (setq meow-keypad-leader-dispatch ctl-x-map) ; Dispatch to the ctl-x-map
+  (setq moder-keypad-leader-dispatch "C-x") ; Dispatch to the keymap at C-x
+  (setq moder-keypad-leader-dispatch ctl-x-map) ; Dispatch to the ctl-x-map
 #+end_src
 
 *** Tips
@@ -155,16 +155,16 @@ BEACON state will be disabled automatically when cursor moves out or secondary s
 
 Once BEACON state is enabled, you can create fake cursors/regions with movement commands.
 
-- ~meow-left/right~ will create cursors in current column.
-- ~meow-next/back-word/symbol~ will create cursors at words'/symbols' beginning or end.
-- ~meow-mark-word/symbol~ will create regions for every same words/symbols.
-- ~meow-visit/search~ will create regions for every same regexp.
-- ~meow-find/till~ will create cursors for every same characters.
-- ~meow-line~ will create regions for every N lines. (N is the number of selected lines).
-- ~meow-join~ will create cursors for each indentation beginning.
+- ~moder-left/right~ will create cursors in current column.
+- ~moder-next/back-word/symbol~ will create cursors at words'/symbols' beginning or end.
+- ~moder-mark-word/symbol~ will create regions for every same words/symbols.
+- ~moder-visit/search~ will create regions for every same regexp.
+- ~moder-find/till~ will create cursors for every same characters.
+- ~moder-line~ will create regions for every N lines. (N is the number of selected lines).
+- ~moder-join~ will create cursors for each indentation beginning.
 
 Once you have fake cursors/regions, you have two options:
-- *quickly & simple* Switch to INSERT state and *start recording kmacro* with ~meow-insert/append/change~,
+- *quickly & simple* Switch to INSERT state and *start recording kmacro* with ~moder-insert/append/change~,
   finish recording and apply this kmacro to all cursors/regions when exit INSERT state.
 - *generally* Start recording with ~F3~ (~kmacro-start-macro-or-insert-counter~ or ~kmacro-start-macro~),
   finish recording and apply this kmacro to all cursors/regions with ~F4~ (~kmacro-end-or-call-macro~ or ~kmacro-end-macro~).

@@ -1,14 +1,14 @@
 ;; -*- mode: eask; lexical-binding: t -*-
 
-(package "meow"
+(package "moder"
          "1.5.0"
          "Yet Another modal editing")
 
-(website-url "https://www.github.com/DogLooksGood/meow")
+(website-url "https://www.github.com/DogLooksGood/moder")
 (keywords "convenience" "modal-editing")
 
-(package-file "meow.el")
-(files "meow-*.el")
+(package-file "moder.el")
+(files "moder-*.el")
 
 (script "test" "echo \"Error: no test specified\" && exit 1")
 

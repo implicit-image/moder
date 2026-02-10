@@ -1,10 +1,10 @@
 * KEYBINDINGS QWERTZ
 
-This is the example ~meow-setup~ function for Qwertz layout.
-Add it to your configuration and call it before ~(meow-global-mode 1)~.
+This is the example ~moder-setup~ function for Qwertz layout.
+Add it to your configuration and call it before ~(moder-global-mode 1)~.
 
 #+begin_example
-                                                               Meow Cheatsheet
+                                                               Moder Cheatsheet
 
 ┏━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━┯━━━━━━━━━━━━━┓
 ┃       ° │       ! │       " │       § │       $ │       % │       & │       / │       ( │       ) │       = │       ? │       ` │        BKSP ┃
@@ -44,15 +44,15 @@ paragraph ->  v      line ->  c    buffer ->  x
 #+end_example
 
 #+begin_src emacs-lisp
-  (defun meow-setup ()
-    (setq meow-cheatsheet-physical-layout meow-cheatsheet-physical-layout-iso)
-    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwertz)
+  (defun moder-setup ()
+    (setq moder-cheatsheet-physical-layout moder-cheatsheet-physical-layout-iso)
+    (setq moder-cheatsheet-layout moder-cheatsheet-layout-qwertz)
 
-    (meow-thing-register 'angle
+    (moder-thing-register 'angle
                          '(pair (";") (":"))
                          '(pair (";") (":")))
 
-    (setq meow-char-thing-table
+    (setq moder-char-thing-table
           '((?f . round)
             (?d . square)
             (?s . curly)
@@ -62,88 +62,88 @@ paragraph ->  v      line ->  c    buffer ->  x
             (?c . line)
             (?x . buffer)))
 
-    (meow-leader-define-key
+    (moder-leader-define-key
       ;; Use SPC (0-9) for digit arguments.
-      '("1" . meow-digit-argument)
-      '("2" . meow-digit-argument)
-      '("3" . meow-digit-argument)
-      '("4" . meow-digit-argument)
-      '("5" . meow-digit-argument)
-      '("6" . meow-digit-argument)
-      '("7" . meow-digit-argument)
-      '("8" . meow-digit-argument)
-      '("9" . meow-digit-argument)
-      '("0" . meow-digit-argument)
-      '("-" . meow-keypad-describe-key)
-      '("_" . meow-cheatsheet))
+      '("1" . moder-digit-argument)
+      '("2" . moder-digit-argument)
+      '("3" . moder-digit-argument)
+      '("4" . moder-digit-argument)
+      '("5" . moder-digit-argument)
+      '("6" . moder-digit-argument)
+      '("7" . moder-digit-argument)
+      '("8" . moder-digit-argument)
+      '("9" . moder-digit-argument)
+      '("0" . moder-digit-argument)
+      '("-" . moder-keypad-describe-key)
+      '("_" . moder-cheatsheet))
 
-    (meow-normal-define-key
+    (moder-normal-define-key
       ;; expansion
-      '("0" . meow-expand-0)
-      '("1" . meow-expand-1)
-      '("2" . meow-expand-2)
-      '("3" . meow-expand-3)
-      '("4" . meow-expand-4)
-      '("5" . meow-expand-5)
-      '("6" . meow-expand-6)
-      '("7" . meow-expand-7)
-      '("8" . meow-expand-8)
-      '("9" . meow-expand-9)
-      '("ä" . meow-reverse)
+      '("0" . moder-expand-0)
+      '("1" . moder-expand-1)
+      '("2" . moder-expand-2)
+      '("3" . moder-expand-3)
+      '("4" . moder-expand-4)
+      '("5" . moder-expand-5)
+      '("6" . moder-expand-6)
+      '("7" . moder-expand-7)
+      '("8" . moder-expand-8)
+      '("9" . moder-expand-9)
+      '("ä" . moder-reverse)
 
       ;; movement
-      '("i" . meow-prev)
-      '("k" . meow-next)
-      '("j" . meow-left)
-      '("l" . meow-right)
+      '("i" . moder-prev)
+      '("k" . moder-next)
+      '("j" . moder-left)
+      '("l" . moder-right)
 
-      '("z" . meow-search)
-      '("-" . meow-visit)
+      '("z" . moder-search)
+      '("-" . moder-visit)
 
       ;; expansion
-      '("I" . meow-prev-expand)
-      '("K" . meow-next-expand)
-      '("J" . meow-left-expand)
-      '("L" . meow-right-expand)
+      '("I" . moder-prev-expand)
+      '("K" . moder-next-expand)
+      '("J" . moder-left-expand)
+      '("L" . moder-right-expand)
 
-      '("u" . meow-back-word)
-      '("U" . meow-back-symbol)
-      '("o" . meow-next-word)
-      '("O" . meow-next-symbol)
+      '("u" . moder-back-word)
+      '("U" . moder-back-symbol)
+      '("o" . moder-next-word)
+      '("O" . moder-next-symbol)
 
-      '("a" . meow-mark-word)
-      '("A" . meow-mark-symbol)
-      '("s" . meow-line)
-      '("S" . meow-goto-line)
-      '("w" . meow-block)
-      '("q" . meow-join)
-      '("g" . meow-grab)
-      '("G" . meow-pop-grab)
-      '("m" . meow-swap-grab)
-      '("M" . meow-sync-grab)
-      '("p" . meow-cancel-selection)
-      '("P" . meow-pop-selection)
+      '("a" . moder-mark-word)
+      '("A" . moder-mark-symbol)
+      '("s" . moder-line)
+      '("S" . moder-goto-line)
+      '("w" . moder-block)
+      '("q" . moder-join)
+      '("g" . moder-grab)
+      '("G" . moder-pop-grab)
+      '("m" . moder-swap-grab)
+      '("M" . moder-sync-grab)
+      '("p" . moder-cancel-selection)
+      '("P" . moder-pop-selection)
 
-      '("x" . meow-till)
-      '("y" . meow-find)
+      '("x" . moder-till)
+      '("y" . moder-find)
 
-      '("," . meow-beginning-of-thing)
-      '("." . meow-end-of-thing)
-      '(";" . meow-inner-of-thing)
-      '(":" . meow-bounds-of-thing)
+      '("," . moder-beginning-of-thing)
+      '("." . moder-end-of-thing)
+      '(";" . moder-inner-of-thing)
+      '(":" . moder-bounds-of-thing)
 
       ;; editing
-      '("d" . meow-kill)
-      '("f" . meow-change)
-      '("t" . meow-delete)
-      '("c" . meow-save)
-      '("v" . meow-yank)
-      '("V" . meow-yank-pop)
+      '("d" . moder-kill)
+      '("f" . moder-change)
+      '("t" . moder-delete)
+      '("c" . moder-save)
+      '("v" . moder-yank)
+      '("V" . moder-yank-pop)
 
-      '("e" . meow-insert)
-      '("E" . meow-open-above)
-      '("r" . meow-append)
-      '("R" . meow-open-below)
+      '("e" . moder-insert)
+      '("E" . moder-open-above)
+      '("r" . moder-append)
+      '("R" . moder-open-below)
 
       '("h" . undo-only)
       '("H" . undo-redo)
