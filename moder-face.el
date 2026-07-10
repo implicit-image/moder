@@ -216,6 +216,7 @@
   "Face for Moder cheatsheet highlight text."
   :group 'moder)
 
+
 (defun moder--prepare-face (&rest _ignore)
   "Calculate faces based on current theme dynamically.
 

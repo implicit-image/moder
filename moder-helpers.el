@@ -159,13 +159,15 @@ currently active. Function is named moder-NAME-mode-p."
      (moder--set-cursor-color ',(if face face 'moder-unknown-cursor))))
 
 (defun moder-register-state (name mode activep cursorf &optional keymap)
-  "Register a custom state with symbol NAME and symbol MODE
-associated with it. ACTIVEP is a function that returns t if the
+  "Register a custom state with symbol NAME and symbol MODE associated with it.
+ACTIVEP is a function that returns t if the
 state is active, nil otherwise. CURSORF is a function that
 updates the cursor when the state is entered. For help with
 making a working CURSORF, check the variable
 moder-update-cursor-functions-alist and the utility functions
-moder--set-cursor-type and moder--set-cursor-color."
+moder--set-cursor-type and moder--set-cursor-color. KEYMAP,
+if provided, is a keymap used as local map when this state
+is active."
   (add-to-list 'moder-state-mode-alist `(,name . ,mode))
   (add-to-list 'moder-replace-state-name-list
                `(,name . ,(upcase (symbol-name name))))
@@ -182,19 +184,19 @@ moder--set-cursor-type and moder--set-cursor-color."
 
 The state will be called NAME-SYM, and have description
 DESCRIPTION. Following these two arguments, pairs of keywords and
-values should be passed, similarly to define-minor-mode syntax.
+values should be passed, similarly to `define-minor-mode' syntax.
 
 Recognized keywords:
 :keymap - the keymap to use for the state
 :lighter - the text to display in the mode line while state is active
 :face - custom cursor face
 
-The last argument is an optional lisp form that will be run when the minor
+The last argument BODY is an optional Lisp form that will be run when the minor
 mode turns on AND off. If you want to hook into only the turn-on event,
 check whether (moder-NAME-SYM-mode) is true.
 
 Example usage:
-(moder-define-state mystate
+\(moder-define-state mystate
   \"My moder state\"
   :lighter \" [M]\"
   :keymap \\='my-keymap
@@ -212,13 +214,13 @@ This function produces several items:
 4. moder--update-cursor-NAME: a function that sets the cursor type to 3.
  and face FACE or \\='moder-unknown cursor if FACE is nil."
   (declare (indent 1))
-  (let ((name       (symbol-name name-sym))
-        (init-value (plist-get body :init-value))
-        (keymap     (plist-get body :keymap))
-        (lighter    (plist-get body :lighter))
-        (face       (plist-get body :face))
-        (form       (unless (cl-evenp (length body))
-                      (car (last body)))))
+  (let* ((name       (symbol-name name-sym))
+         (init-value (plist-get body :init-value))
+         (keymap     (plist-get body :keymap))
+         (lighter    (plist-get body :lighter))
+         (face       (plist-get body :face))
+         (form       (unless (cl-evenp (length body))
+                       (car (last body)))))
     `(progn
        ,(moder--define-state-active-p name)
        ,(moder--define-state-minor-mode name init-value description keymap lighter form)
@@ -231,6 +233,7 @@ This function produces several items:
                              ,keymap))))
 
 (defun moder--is-self-insertp (cmd)
+  "Return non-nil if CMD is a self insert command."
   (and (symbolp cmd)
        (string-match-p "\\`.*self-insert.*\\'"
                        (symbol-name cmd))))
@@ -259,6 +262,59 @@ MODE is nil."
      (state state)
      (parent-mode (moder--mode-get-state parent-mode))
      (t (moder--mode-guess-state)))))
+
+(defun moder--syntax-at-point-p (syntax &optional pos)
+  "Return non-nil if there is syntax matching SYNTAX at POS, nil otherwise."
+  (let* ((start (or pos (point))))
+    (save-mark-and-excursion
+      (when pos (goto-char pos))
+      (< 0 (abs (skip-syntax-forward syntax (+ 1 start)))))))
+
+(defun moder--adjust-direction (n)
+  (when (and n (< n 0) (region-active-p))
+    (exchange-point-and-mark)))
+
+(defun moder--skip-syntax (syntax &optional back)
+  "Skip characters that match SYNTAX. Move backwards if BACK is non-nil."
+  (funcall (if back #'skip-syntax-backward #'skip-syntax-forward)
+           syntax))
+
+(defun moder--skip-not-syntax (syntax &optional back)
+  "Skip characters that do not match SYNTAX. Move backwards if BACK is non-nil."
+  (moder--skip-syntax (if (string-prefix-p "^" syntax)
+                          (substring syntax 1)
+                        (concat "^" syntax))
+                      back))
+
+(defun moder--search (back str &optional bound noerror count)
+  (funcall (if back #'search-backward #'search-forward) str bound noerror count))
+
+(defun moder--search-regexp (back regexp &optional bound noerror count)
+  "Search regex REGEXP "
+  (funcall (if back #'search-backward-regexp #'search-forward-regexp) str bound noerror count))
+
+(defun moder--intern (str &optional priv)
+  "Intern string STR as a symbol with prefix \"moder-\". If PRIV is non-nil, use \"moder--\" prefix onstead."
+  (intern (concat (if (string-prefix-p "moder-" str) "" (concat "moder-" (and priv "-")))
+                  str)))
+
+(defun moder--fmt-soft-intern (fmt-string &rest args)
+  "Soft intern the result of formattinh FMT-STRING with ARGS.
+If the last of ARGS is an obarray, it is used for interning instead of the default one."
+  (let* ((obarr (if (and (length> args 1) (obarrayp (car (last args))))
+                    (car (last args))
+                  nil))
+         (fmt-string (if obarr
+                         (apply #'format fmt-string (butlast args))
+                       (apply #'format fmt-string args))))
+    (intern-soft fmt-string obarr)))
+
+(defun moder--command-p (command)
+  "Return non-nil if COMMAND is a moder command."
+  (cond
+   ((symbolp command)
+    (get command 'moder-command))
+   ((functionp command))))
 
 (provide 'moder-helpers)
 ;;; moder-helpers.el ends here
