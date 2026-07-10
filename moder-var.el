@@ -57,6 +57,7 @@ This doesn't affect how keypad works on recording or executing a kmacro."
 (defcustom moder-selection-command-fallback
   '((moder-change . moder-change-char)
     (moder-kill . moder-C-k)
+    (moder-kmacro-lines . moder-line)
     (moder-save . kill-ring-save)
     (moder-cancel-selection . keyboard-quit)
     (moder-pop-selection . moder-pop-grab)
@@ -77,6 +78,21 @@ This doesn't affect how keypad works on recording or executing a kmacro."
   :group 'moder
   :type '(alist :key-type (symbol :tag "Moder state")
                 :value-type (string :tag "Indicator")))
+
+(defcustom moder-beacon-preview-start-margin 1000
+  "How far before the `window-start' should the preview overlay display start.")
+
+(defcustom moder-beacon-preview-end-margin 1000
+  "How far after `window-end' should the preciew overlay display start.")
+
+(defcustom moder-beacon-max-overlay-list-length 6000
+  "Max length of overlay list before its split in sublists.")
+
+(defcustom moder-beacon-inhibit-redisplay-during-execution t
+  "Whether to set `inhibit-redisplay' during kmacro application.")
+
+(defcustom moder-beacon-inhibit-message-during-execution t
+  "Whether to set `inhibit-message' during kmacro application.")
 
 (defvar moder-indicator-face-alist
   '((normal . moder-normal-indicator)
@@ -176,6 +192,31 @@ Each item is a (THING FORWARD_SYNTAX_TO_INCLUDE BACKWARD-SYNTAX_TO_INCLUDE)."
                 :value-type (alist :key-type (character :tag "Char")
                                    :value-type (symbol :tag "Thing"))))
 
+(defcustom moder-thing-transient-map-use-prompt nil
+  "Whether to use fancy prompt for thing selection transient map.")
+
+(defcustom moder-thing-transient-map-key-style nil
+  "What style of binding to use for thing selection transient map.
+Available options, where <char> is a character from `moder-local-char-thing-table', are:
+nil, meaning use <char> directly,
+'control, meaning use C-<char>,
+'meta, meaning use M-<char>,
+'control-meta, meaning C-M-<char>,
+a kbd format string with placeholder %c for the character, ex. \"S-%c\"."
+  :group 'moder
+  :type '(choice (const control :tag "C-<char>")
+                 (const meta :tag "M-<char>")
+                 (const control-meta :tag "C-M-<char>")
+                 (const nil :tag "Only char")
+                 (string :tag "Custom kbd string")))
+
+(defcustom moder-thing-transient-map-timeout 0.5
+  "Idle time after which `moder--thing-transient-map' is deactivated."
+  :group 'moder)
+
+(defcustom moder-thing-register-thingatpt nil ;;TODO: decide whether to implement this
+  "Whether to register moder defined things in `thingatpt' provider lists.")
+
 (defvar-local moder-local-char-thing-table nil
   "Variable for actual use after merging.")
 
@@ -191,6 +232,15 @@ Each item is a (THING FORWARD_SYNTAX_TO_INCLUDE BACKWARD-SYNTAX_TO_INCLUDE)."
   :group 'moder
   :type '(alist :key-type (symbol :tag "Command")
                 :value-type (symbol :tag "Direction")))
+
+(defcustom moder-mark-recenter-after-pop nil
+  "Whether to recenter the point after calling `moder-pop-to-mark'.")
+
+(defcustom moder-mark-recenter-after-unpop nil
+  "Wether to recenter the point after calling `moder-unpop-to-mark'.")
+
+(defcustom moder-mark-recenter-after-global-pop nil
+  "Whether to recenter the point after calling `moder-pop-to-global-mark'.")
 
 (defvar moder-word-thing 'word
   "The \\='thing\\=' used for marking and movement by words.
@@ -301,6 +351,12 @@ Set to `t' to always update.
   :type '(choice boolean
                  (const except-last-macro)))
 
+(defcustom moder-kmacro-advice-list
+  '((electric-pair--insert moder--kmacro-electric-pair-before-advice moder--kmacro-electric-pair-after-advice))
+  "Advice to add for the duration of macro definition."
+  :group 'moder
+  :type '(list symbol :tag "Function to advise, :before advice and :after advice"))
+
 (defcustom moder-expand-selection-type 'select
   "Whether to create transient selection for expand commands."
   :group 'moder
@@ -308,7 +364,7 @@ Set to `t' to always update.
                  (const expand)))
 
 (defcustom moder-keypad-leader-transparent 'motion
-  "Use transparent behaivor when a bound command is not found in leader dispatch.
+  "Use transparent behaviour when a bound command is not found in leader dispatch.
 
 Value `t' stands for always be transparent.
 Value `motion' stands for only be transparent in MOTION state.
@@ -591,6 +647,13 @@ Has a structure of (sel-type point mark).")
 (defvar moder-setup-local-things-hook nil
   "Hooks run when setting local things for buffer. Each function is called with current local things table as the only argument.")
 
+(defvar moder-kmacro-buffer-setup-hook nil
+  "Abnormal hooks run before starting the application of kmacro in the buffer. Called with 1 argument STATE.
+STATE is 'start ")
+
+(defvar moder-kmacro-buffer-finish-hook nil
+  "Hooks run after finishing the application of kmacro in the buffer. The hooks are run inside `save-mark-and-excursion' form.")
+
 ;;; Internal variables
 
 (defvar-local moder--current-state 'normal
@@ -602,8 +665,24 @@ Has a structure of (sel-type point mark).")
 (defvar-local moder--temp-normal nil
   "Whether we are in temporary normal state. ")
 
+(defvar-local moder--kmacro-backup-revert-function nil)
+
 (defvar moder--selection-history nil
   "The history of selections.")
+
+(defvar moder--selection-sequence-history nil
+  "The history of continous selection changes.")
+
+(defvar moder-last-change nil
+  "")
+
+(defcustom moder-change-ring-size 32
+  "Size of `moder-change-ring'."
+  :group 'moder
+  :type 'number)
+
+(defvar moder-change-ring nil
+  "Ring storing last `moder-change-ring-size' changes.")
 
 (defvar moder--expand-nav-function nil
   "Current expand nav function.")
@@ -639,9 +718,12 @@ Nil means to lookup in top-level.")
   "Whether hl-line is enabled by user.")
 
 (defvar moder--beacon-defining-kbd-macro nil
-  "Whether we are defining kbd macro at BEACON state.
+  "Whether we are defining kbd macro at SELECT state.
 
 The value can be nil, quick or record.")
+
+(defvar moder--beacon-overlay-count nil
+  "How many beacon overlays there are.")
 
 (defvar-local moder--insert-pos nil
   "The position where we enter INSERT state.")
@@ -772,7 +854,7 @@ the replacement text.")
 (defvar moder--backup-var-delete-activae-region nil
   "The backup for `delete-active-region'.
 
-It is used to restore its value when disable `moder'.")
+It is used to restore its value when disabling `moder'.")
 
 (defvar moder--backup-redisplay-highlight-region-function
   redisplay-highlight-region-function)
@@ -782,6 +864,53 @@ It is used to restore its value when disable `moder'.")
 
 (defvar moder--backup-var-delete-activate-region
   delete-active-region)
+
+;;;; Jump
+
+(defvar moder-executing-kmacro nil)
+
+(defcustom moder-jump-ring-size 64
+  "Size for `moder-jump-ring-size'."
+  :group 'moder
+  :type 'integer)
+
+(defvar moder-jump-list (make-ring moder-jump-ring-size)
+  "")
+
+(defcustom moder-kmacro-sequence-ring-size 32
+  "Size of `moder--kmacro-sequence-ring'")
+
+(defvar moder-kmacro-sequence-ring (make-ring moder-kmacro-sequence-ring-size))
+
+(defvar moder--current-kmacro-sequence nil
+  "Current kmacro sequence.")
+
+(defvar moder-kmacro-pre-command-inhibit-functions
+  '(eldoc-pre-command-refresh-echo-area moder--highlight-pre-command))
+
+(defvar moder-kmacro-post-command-inhibit-functions
+  '(whitespace-post-command-hook jit-lock--antiblink-post-command eldoc-schedule-timer moder--maybe-toggle-beacon-state))
+
+(defvar moder-kmacro-post-self-insert-inhibit-functions
+  '(blink-paren-post-self-insert-function))
+
+(defvar moder-kmacro-minor-mode-inhibit-commands
+  '(eldoc-mode
+    which-key-mode
+    font-lock-mode
+    jit-lock-mode
+    electric-pair-mode
+    tooltip-mode
+    whitespace-mode
+    show-paren-local-mode))
+
+(defvar moder--executing-selection-sequence nil)
+
+(defvar-local moder--selection-sequence-last-history nil)
+
+(defvar-local moder--selection-sequence-switch-command nil)
+
+
 
 (provide 'moder-var)
 ;;; moder-var.el ends here

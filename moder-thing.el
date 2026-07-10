@@ -17,6 +17,8 @@
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 
+;;; Code:
+
 (require 'cl-lib)
 (require 'subr-x)
 
@@ -26,7 +28,18 @@
 (declare-function moder--visual-line-end-position "moder-command")
 (declare-function moder--visual-line-beginning-position "moder-command")
 
+(declare-function moder--search-regexp "moder-helpers")
+(declare-function moder--skip-syntax "moder-helpers")
+(declare-function moder--skip-not-syntax "moder-helpers")
+(declare-function moder--syntax-at-point-p "moder-helpers")
+(declare-function moder--fmt-soft-intern "moder-helpers")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; HELPER FUNCTIONS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun moder--bounds-of-symbol ()
+  "Return bounds of symbol at point."
   (when-let* ((bounds (bounds-of-thing-at-point moder-symbol-thing)))
     (let ((beg (car bounds))
           (end (cdr bounds)))
@@ -59,9 +72,13 @@ The thing `string' is not available in Emacs 27.'"
     (bounds-of-thing-at-point 'string)))
 
 (defun moder--inner-of-symbol ()
+  "Return inner bounds of symbol at point."
   (bounds-of-thing-at-point moder-symbol-thing))
 
 (defun moder--bounds-of-string (&optional inner)
+  "Return bounds of string at point.
+
+If INNER is non-nil, return outer bounds, else return inner bounds."
   (when-let* ((bounds (moder--bounds-of-string-1)))
     (let ((beg (car bounds))
           (end (cdr bounds)))
@@ -76,20 +93,26 @@ The thing `string' is not available in Emacs 27.'"
          (point))))))
 
 (defun moder--inner-of-string ()
+  "Return inner bounds of string at point."
   (moder--bounds-of-string t))
 
 (defun moder--inner-of-window ()
+  "Return inner bounds of current window."
   (cons (window-start) (window-end)))
 
 (defun moder--inner-of-line ()
+  "Return inner bounds of line at point."
   (cons (save-mark-and-excursion (back-to-indentation) (point))
         (line-end-position)))
 
 (defun moder--inner-of-visual-line ()
+  "Return inner bounds of visual line at point."
   (cons (moder--visual-line-beginning-position)
         (moder--visual-line-end-position)))
 
 (defun moder--inner-of-search-string (&optional arg)
+  "Return the positions of first and last search match.
+If ARG is non-nil or `search-ring' is empty read a string to search from minibuffer,"
   (let* ((str (if (or arg (null search-ring))
                   (read-string "Search: ")
                 (car search-ring)))
@@ -105,6 +128,8 @@ The thing `string' is not available in Emacs 27.'"
       (cons beg end))))
 
 (defun moder--inner-of-search-regexp (&optional arg)
+  "Return the positions of first and last regexp search match.
+If ARG is non-nil or `regexp-search-ring' is empty read a regexp from a minibuffer."
   (let* ((str (if (or arg (null regexp-search-ring))
                   (read-string "Search regex: ")
                 (car regexp-search-ring)))
@@ -118,6 +143,32 @@ The thing `string' is not available in Emacs 27.'"
                 (match-end 0))))
     (when (and beg end)
       (cons beg end))))
+
+(defun moder--forward-symbol (&optional n)
+  "Move point forward N symbols."
+  (forward-symbol (or n 1)))
+
+(defun moder--forward-string (&optional n)
+  "Move point forward N string literals."
+  (let* ((back (and (numberp n) (< n 0)))
+         (times (or (abs n) 1))
+         (count 0)
+         (bounds (bounds-of-thing-at-point 'string)))
+    (cond
+     (back
+      (when bounds (goto-char (car bounds)))
+      (while (< count times)
+        (moder--skip-not-syntax "\"" back)
+        (backward-sexp)
+        (incf count)))
+     (t
+      (when bounds (goto-char (cdr bounds)))
+      (while (< count times)
+        (moder--skip-not-syntax "\"" back)
+        (forward-sexp)
+        (incf count))))
+    (point)))
+
 ;;; Registry
 
 (defvar moder--thing-registry nil
@@ -126,14 +177,62 @@ The thing `string' is not available in Emacs 27.'"
 This is a plist mapping from thing to (inner-fn . bounds-fn).
 Both inner-fn and bounds-fn returns a cons of (start . end) for that thing.")
 
-(defun moder--thing-register (thing inner-fn bounds-fn)
+(defun moder--thing-register (thing inner-fn bounds-fn next-fn)
   "Register INNER-FN and BOUNDS-FN to a THING."
   (setq moder--thing-registry
         (plist-put moder--thing-registry
                    thing
-                   (cons inner-fn bounds-fn))))
+                   (list inner-fn bounds-fn next-fn))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; THING EXPAND MAP
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun moder--thing-transient-map ()
+  "Construct a transient map for expanding current selection."
+  (let ((map (make-sparse-keymap))
+        (fmt-str (cl-case moder-thing-transient-map-key-style
+                   ((control) "C-%c")
+                   ((meta) "M-%c")
+                   ((control-meta) "C-M-%c")
+                   (t (if (stringp moder-thing-transient-map-key-style)
+                          moder-thing-transient-map-key-style
+                        "%c")))))
+    (dolist (pair moder-local-char-thing-table)
+      (let* ((char (car pair))
+             (key (kbd (format fmt-str char))))
+        (when (key-valid-p key)
+          (define-key map key 'moder-expand-thing))))
+    (dotimes (i 10)
+      (define-key map (kbd (number-to-string i)) 'digit-argument))
+    map))
+
+;;TODO: actually implement nicer transient map display
+(defun moder--thing-transient-map-message ()
+  "Return the message to use with transient map generated by `moder--thing-transient-map'."
+  (if moder-thing-transient-map-use-prompt
+      (moder--render-char-thing-table)
+    nil))
+
+(defun moder--thing-transient-map-keep-p ()
+  "Predicate function for `set-transient-map'."
+  (or (eq this-command 'moder-expand-thing)
+      (memq this-command moder--thing-transient-map-keep-commands)))
+
+(defun moder--thing-set-transient-map ()
+  "Set transient map for expanding selection by things."
+  (set-transient-map (moder--thing-transient-map)
+                     #'moder--thing-transient-map-keep-p
+                     nil
+                     (moder--thing-transient-map-message)
+                     moder-thing-transient-map-timeout))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; BOUNDS OF THING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun moder--thing-syntax-function (syntax)
+  "Search for bounds of thing at point described by SYNTAX."
   (cons
    (save-mark-and-excursion
      (when (use-region-p)
@@ -147,6 +246,8 @@ Both inner-fn and bounds-fn returns a cons of (start . end) for that thing.")
      (point))))
 
 (defun moder--thing-regexp-function (b-re f-re near)
+  "Search for bounds of thing at point with beginning matching B-RE and end\
+matching F-RE. If NEAR is non-nil, search for inner bounds."
   (let ((beg (save-mark-and-excursion
                (when (use-region-p)
                  (goto-char (region-beginning)))
@@ -217,7 +318,6 @@ Both inner-fn and bounds-fn returns a cons of (start . end) for that thing.")
     (when (and beg end)
       (cons beg end))))
 
-
 (defun moder--thing-make-syntax-function (x)
   (lambda () (moder--thing-syntax-function x)))
 
@@ -240,16 +340,6 @@ Both inner-fn and bounds-fn returns a cons of (start . end) for that thing.")
                       (string-join  tokens "\\|"))))
     (lambda () (moder--thing-pair-function push-token pop-token near))))
 
-(defun moder--thing-parse-multi (xs near)
-  (let ((chained-fns (mapcar (lambda (x) (moder--thing-parse x near)) xs)))
-    (lambda ()
-      (let ((fns chained-fns)
-            ret)
-        (while (and fns (not ret))
-          (setq ret (funcall (car fns))
-                fns (cdr fns)))
-        ret))))
-
 (defun moder--thing-parse (x near)
   (cond
    ((functionp x)
@@ -271,11 +361,196 @@ Both inner-fn and bounds-fn returns a cons of (start . end) for that thing.")
       (message "Moder: THING definition broken")
       (cons (point) (point))))))
 
-(defun moder-thing-register (thing inner bounds)
+(defun moder--thing-parse-multi (xs near)
+  (let ((chained-fns (mapcar (lambda (x) (moder--thing-parse x near)) xs)))
+    (lambda ()
+      (let ((fns chained-fns)
+            ret)
+        (while (and fns (not ret))
+          (setq ret (funcall (car fns))
+                fns (cdr fns)))
+        ret))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; FORWARD THING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun moder--forward-thing-syntax-function (syntax n back)
+  (let* ((snt (cdr syntax)))
+    (when (moder--syntax-at-point-p snt (if back (1- (point)) (point)))
+      (moder--skip-syntax snt back))
+    (when (> n 1)
+      (when-let* ((count (- 1 n))
+                  (ok (> count 0)))
+        (while (> count 0)
+          (moder--skip-not-syntax snt back)
+          (moder--skip-syntax snt back)
+          (decf count))
+        (point)))))
+
+(defun moder--forward-thing-regexp-function (b-re f-re n back)
+  (let* ((atp (let ((beg (save-mark-and-excursion
+                           (when (use-region-p)
+                             (goto-char (region-beginning)))
+                           (when (re-search-backward b-re nil t)
+                             (point))))
+                    (end (save-mark-and-excursion
+                           (when (use-region-p)
+                             (goto-char (region-end)))
+                           (when (re-search-forward f-re nil t)
+                             (point)))))
+                (when (and beg end)
+                  (cons beg end))))
+         (main-rx (if back b-re f-re))
+         (inter-rx (if back f-re b-re))
+         (lim (if back (point-min) (point-max)))
+         (res (point))
+         (count 0))
+    ;; go to beginning or end of thing found at point
+    (when atp (goto-char (if back (car atp) (cdr atp))))
+    (let ((main (point))
+          (inter (point)))
+      (while (and (< count n)
+                  (not (if back (bobp) (eobp))))
+        (setq inter (moder--search-regexp back inter-rx lim t 1)
+              main (moder--search-regexp back main-rx lim t 1))
+        (incf count))
+      (if back (match-beginning 0) (match-end 0)))))
+
+;; FIXME: correclty implement forward function for pairs
+;; MAYBE: use `forward-list' to navigate (in the context of current subexp)
+;; MAYBE: use the current approach as a base: select outer pairs
+;; for forward selections move one level up, forward to the next cluster
+;; and continue searching for selection on the same nesting level.
+;; this fails without some complicate parsing
+(defun moder--forward-thing-parse-pair-search (push-token pop-token n back)
+  (let* ((search-fn (if back #'re-search-backward #'re-search-forward))
+         (match-fn (if back #'match-end #'match-beginning))
+         (cmp-fn (if back #'> #'<))
+         (push-next-pos nil)
+         (pop-next-pos nil)
+         (push-pos (save-mark-and-excursion
+                     (when (funcall search-fn push-token nil t)
+                       (setq push-next-pos (point))
+                       (point))))
+         (pop-pos (save-mark-and-excursion
+                    (when (funcall search-fn pop-token nil t)
+                      (setq pop-next-pos (point))
+                      (point)))))
+    (cond
+     ((and (not pop-pos) (not push-pos))
+      nil)
+     ((not pop-pos)
+      (goto-char push-next-pos)
+      (cons 'push push-pos))
+     ((not push-pos)
+      (goto-char pop-next-pos)
+      (cons 'pop pop-pos))
+     ((funcall cmp-fn push-pos pop-pos)
+      (goto-char push-next-pos)
+      (cons 'push push-pos))
+     (t
+      (goto-char pop-next-pos)
+      (cons 'pop pop-pos)))))
+
+(defun moder--forward-thing-pair-function (push-token pop-token n back)
+  (let* ((found nil)
+         (depth  0)
+         (beg (save-mark-and-excursion
+                (prog1
+                    (let ((case-fold-search nil))
+                      (while (and (<= depth 0)
+                                  (setq found (moder--forward-thing-parse-pair-search push-token pop-token n back)))
+                        (let ((push-or-pop (car found)))
+                          (if (eq 'push push-or-pop)
+                              (cl-incf depth)
+                            (cl-decf depth))))
+                      (when (> depth 0) (cdr found)))
+                  (setq depth 0
+                        found nil))))
+         (end (save-mark-and-excursion
+                (let ((case-fold-search nil))
+                  (while (and (>= depth 0)
+                              (setq found (moder--forward-thing-parse-pair-search push-token pop-token n back)))
+                    (let ((push-or-pop (car found)))
+                      (if (eq 'push push-or-pop)
+                          (cl-incf depth)
+                        (cl-decf depth))))
+                  (when (< depth 0) (cdr found))))))
+    (when (and beg end)
+      (cons beg end))))
+
+(defun moder--forward-thing-make-syntax-function (x)
+  (lambda (&optional n)
+    (let ((n (or n 1)))
+      (moder--forward-thing-syntax-function x (abs n) (< n 0)))))
+
+(defun moder--forward-thing-make-regexp-function (x)
+  (let* ((b-re (cadr x))
+         (f-re (caddr x)))
+    (lambda (n)
+      (let ((n (or n 1)))
+        (moder--forward-thing-regexp-function b-re f-re (abs n) (< n 0))))))
+
+(defun moder--forward-thing-make-pair-function (x)
+  (let* ((push-token (let ((tokens (cadr x)))
+                       (string-join (mapcar #'regexp-quote tokens) "\\|")))
+         (pop-token (let ((tokens (caddr x)))
+                      (string-join (mapcar #'regexp-quote tokens) "\\|"))))
+    (lambda (n)
+      (let ((n (or n 1)))
+        (moder--forward-thing-pair-function push-token pop-token (abs n) (< n 0))))))
+
+(defun moder--forward-thing-make-pair-regexp-function (x)
+  (let* ((push-token (let ((tokens (cadr x)))
+                       (string-join  tokens "\\|")))
+         (pop-token (let ((tokens (caddr x)))
+                      (string-join  tokens "\\|"))))
+    (lambda (n)
+      (let ((n (or n 1)))
+        (moder--forward-thing-pair-function push-token pop-token (abs n) (< n 0))))))
+
+(defun moder--forward-thing-parse-multi (xs)
+  (let ((chained-fns (mapcar (lambda (x) (moder--forward-thing-parse x)) xs)))
+    (lambda (n)
+      (let ((fns chained-fns)
+            ret)
+        (while (and fns (not ret))
+          (setq ret (funcall (car fns) n)
+                fns (cdr fns)))
+        ret))))
+
+(defun moder--forward-thing-parse (x)
+  (cond
+   ((functionp x)
+    x)
+   ((and (symbolp x)
+         (functionp (or (get x 'forward-op)
+                        (moder--fmt-soft-intern "forward-%s" x))))
+    (or (get x 'forward-op)
+        (moder--fmt-soft-intern "forward-%s" x)))
+   ((and (consp x) (equal 'syntax (car x)))
+    (moder--forward-thing-make-syntax-function x))
+   ((and (consp x) (equal 'regexp (car x)))
+    (moder--forward-thing-make-regexp-function x))
+   ((and (consp x) (equal 'pair (car x)))
+    (moder--forward-thing-make-pair-function x))
+   ((and (consp x) (equal 'pair-regexp (car x)))
+    (moder--forward-thing-make-pair-regexp-function x))
+   ((listp x)
+    (moder--forward-thing-parse-multi x))
+   (t
+    (lambda (&rest args)
+      (message "Moder: THING definition broken")
+      (point)))))
+
+
+(defun moder-thing-register (thing inner bounds &optional forward)
   "Register a THING with INNER and BOUNDS.
 
 Argument THING should be symbol, which specified in `moder-char-thing-table'.
-Argument INNER and BOUNDS support following expressions:
+Argument INNER, BOUNDS and FORWARD support following expressions:
 
   EXPR ::= FUNCTION | SYMBOL | SYNTAX-EXPR | REGEXP-EXPR
          | PAIRED-EXPR | MULTI-EXPR
@@ -340,57 +615,74 @@ PAIR-REGEXP-EXPR contains two regexp lists. The regexp in first
                          \\='(pair-regexp (\"{[\\n\\t ]*\")  (\"[\\n\\t ]*}\") )
                          \\='(pair (\"{\") (\"}\")))"
   (let ((inner-fn (moder--thing-parse inner t))
-        (bounds-fn (moder--thing-parse bounds nil)))
-    (moder--thing-register thing inner-fn bounds-fn)))
+        (bounds-fn (moder--thing-parse bounds nil))
+        (forward-fn (moder--forward-thing-parse forward)))
+    (moder--thing-register thing inner-fn bounds-fn forward-fn)))
 
-(moder-thing-register 'round
-                      '(pair ("(") (")"))
-                      '(pair ("(") (")")))
+(moder-thing-register 'round '(pair ("(") (")")) '(pair ("(") (")")) '(pair ("(") (")")))
 
-(moder-thing-register 'square
-                      '(pair ("[") ("]"))
-                      '(pair ("[") ("]")))
+(moder-thing-register 'square '(pair ("[") ("]")) '(pair ("[") ("]")) '(pair ("[") ("]")))
 
-(moder-thing-register 'curly
-                      '(pair ("{") ("}"))
-                      '(pair ("{") ("}")))
+(moder-thing-register 'curly '(pair ("{") ("}")) '(pair ("{") ("}")) '(pair ("{") ("}")))
 
-(moder-thing-register 'paragraph 'paragraph 'paragraph)
+;; FIXME: experimental
+(moder-thing-register 'xml-tag '(pair-regexp ("\<[^\>/]+\>*") ("\<*/[^\</]*\>")) '(pair-regexp ("\<[^\>/]+\>*") ("\<*/[^\</]*\>")) '(pair-regexp ("\<[^\>/]+\>*") ("\<*/[^\</]*\>")))
 
-(moder-thing-register 'sentence 'sentence 'sentence)
+(moder-thing-register 'paragraph 'paragraph 'paragraph #'forward-paragraph)
 
-(moder-thing-register 'buffer 'buffer 'buffer)
+(moder-thing-register 'sentence 'sentence 'sentence #'forward-sentence)
 
-(moder-thing-register 'defun 'defun 'defun)
+(moder-thing-register 'buffer 'buffer 'buffer
+                      (lambda (n)
+                        (if (>= n 0)
+                            (end-of-buffer)
+                          (beginning-of-buffer))))
 
-(moder-thing-register moder-symbol-thing #'moder--inner-of-symbol #'moder--bounds-of-symbol)
+(moder-thing-register 'defun 'defun 'defun 'defun)
 
-(moder-thing-register 'string #'moder--inner-of-string #'moder--bounds-of-string)
+(moder-thing-register moder-symbol-thing #'moder--inner-of-symbol #'moder--bounds-of-symbol #'moder--forward-symbol)
 
-(moder-thing-register 'window #'moder--inner-of-window #'moder--inner-of-window)
+(moder-thing-register 'string #'moder--inner-of-string #'moder--bounds-of-string #'moder--forward-string)
 
-(moder-thing-register 'line #'moder--inner-of-line 'line)
+(moder-thing-register 'window #'moder--inner-of-window #'moder--inner-of-window #'moder--inner-of-window)
 
-(moder-thing-register 'visual-line #'moder--inner-of-visual-line #'moder--inner-of-visual-line)
+(moder-thing-register 'line #'moder--inner-of-line 'line 'line)
 
-(moder-thing-register 'search-string #'moder--inner-of-search-string #'moder--inner-of-search-string)
+(moder-thing-register 'visual-line #'moder--inner-of-visual-line #'moder--inner-of-visual-line #'moder--inner-of-visual-line)
 
-(moder-thing-register 'search-regexp #'moder--inner-of-search-regexp #'moder--inner-of-search-regexp)
+(moder-thing-register 'search-string #'moder--inner-of-search-string #'moder--inner-of-search-string #'moder--inner-of-search-string)
 
-(defun moder--parse-inner-of-thing-char (ch)
-  (when-let* ((ch-to-thing (assoc ch moder-local-char-thing-table)))
-    (moder--parse-range-of-thing (cdr ch-to-thing) t)))
+(moder-thing-register 'search-regexp #'moder--inner-of-search-regexp #'moder--inner-of-search-regexp #'moder--inner-of-search-regexp)
 
-(defun moder--parse-bounds-of-thing-char (ch)
-  (when-let* ((ch-to-thing (assoc ch moder-local-char-thing-table)))
-    (moder--parse-range-of-thing (cdr ch-to-thing) nil)))
+(defun moder--thing-p (sym)
+  "Return non-nil if SYM is a registered moder thing."
+  (and (symbolp sym) (plist-member moder--thing-registry sym)))
+
+(defun moder--thing-get-function (func thing)
+  "Get FUNC function for THING.
+FUNC can be sybol `inner' for inner-of-thing function, `bounds' for bounds-of-thing function
+or `forward', for forward-thing function."
+  (when-let* ((funs (plist-get moder--thing-registry thing))
+              (fun (nth (pcase func
+                          ('inner 0)
+                          ('bounds 1)
+                          ('forward 2))
+                        funs)))
+    (when (functionp fun)
+      fun)))
 
 (defun moder--parse-range-of-thing (thing inner)
-  "Parse either inner or bounds of THING. If INNER is non-nil then parse inner."
-  (when-let* ((bounds-fn-pair (plist-get moder--thing-registry thing)))
-    (if inner
-        (funcall (car bounds-fn-pair))
-      (funcall (cdr bounds-fn-pair)))))
+  "Parse either inner or bounds of THING at point. If INNER is non-nil then parse inner."
+  (if-let ((fun (moder--thing-get-function (if inner 'inner 'bounds) thing)))
+      (funcall fun)
+    (user-error "Error in %S: No %s function defined for %S" this-command (if inner "inner" "bounds") thing)))
+
+(defun moder--forward-thing (thing back n)
+  "Move point N THINGs forward, If BACK is non-nil, move backward instead."
+  (if-let ((fun (moder--thing-get-function 'forward thing)))
+      (dotimes (_ n)
+        (funcall fun back))
+    (user-error "Error in %S: No forward function defined for %S" this-command thing)))
 
 (provide 'moder-thing)
 ;;; moder-thing.el ends here

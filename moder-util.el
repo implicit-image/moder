@@ -30,6 +30,10 @@
 (require 'moder-var)
 (require 'moder-keymap)
 (require 'moder-face)
+(require 'moder-kmacro)
+
+(eval-when-compile
+  (require 'moder-selection))
 
 ;; Modes
 
@@ -50,10 +54,15 @@
 (declare-function moder--enable "moder-core")
 (declare-function moder--beacon-apply-command "moder-beacon")
 (declare-function moder-keypad-start-with "moder-keypad")
+(declare-function moder--select "moder-command")
+(declare-function moder--make-selection "moder-selection")
+(declare-function moder--selection-type "moder-selection")
+(declare-function moder--selection-thing "moder-selection")
+(declare-function moder--direction-forward-p "moder-selection")
 
 (defun moder--execute-kbd-macro (kbd-macro-or-defun)
-  "Execute the function bound to `KBD-MACRO-OR-DEFUN'. If `KBD-MACRO-OR-DEFUN' is a string,
-instead execute the keyboard macro it corresponds to."
+  "Execute the function bound to `KBD-MACRO-OR-DEFUN'.
+If `KBD-MACRO-OR-DEFUN' is a string, instead execute the keyboard macro it corresponds to."
   (when-let* ((ret (if (and (symbolp kbd-macro-or-defun) (fboundp kbd-macro-or-defun))
                        kbd-macro-or-defun
                      (key-binding (read-kbd-macro kbd-macro-or-defun)))))
@@ -176,7 +185,9 @@ Looks up the state in moder-replace-state-name-list"
            (indicator-face (alist-get state moder-indicator-face-alist)))
       (if state-name
           (propertize
-           (format " %s " state-name)
+           (if (and (eq state 'beacon) moder--beacon-overlays)
+               (format " %s: %d" state-name (length moder--beacon-overlays))
+             (format " %s " state-name))
            'face indicator-face)
         ""))))
 
@@ -200,13 +211,16 @@ Looks up the state in moder-replace-state-name-list"
      (null executing-kbd-macro))))
 
 (defun moder-update-display ()
-  (when (moder--should-update-display-p)
+  (when (and (not moder-executing-kmacro) (moder--should-update-display-p))
     (moder--update-indicator)
     (moder--update-cursor)))
 
 (defun moder--switch-state (state &optional no-hook)
   "Switch to STATE execute `moder-switch-state-hook' unless NO-HOOK is non-nil."
   (unless (eq state (moder--current-state))
+    ;; store state change when recording kmacro
+    (when defining-kbd-macro
+      (moder--kmacro-store-state-change state))
     (let ((mode (alist-get state moder-state-mode-alist)))
       (funcall mode 1))
     (unless (bound-and-true-p no-hook)
@@ -222,31 +236,6 @@ Looks up the state in moder-replace-state-name-list"
     (moder--beacon-apply-command moder--keypad-this-command))
   (when moder--keypad-previous-state
     (moder--switch-state moder--keypad-previous-state)))
-
-(defun moder--direction-forward ()
-  "Make the selection towards forward."
-  (when (and (region-active-p) (< (point) (mark)))
-    (exchange-point-and-mark)))
-
-(defun moder--direction-backward ()
-  "Make the selection towards backward."
-  (when (and (region-active-p) (> (point) (mark)))
-    (exchange-point-and-mark)))
-
-(defun moder--direction-backward-p ()
-  "Return whether we have a backward selection."
-  (and (region-active-p)
-       (> (mark) (point))))
-
-(defun moder--direction-forward-p ()
-  "Return whether we have a forward selection."
-  (and (region-active-p)
-       (<= (mark) (point))))
-
-(defun moder--selection-type ()
-  "Return current selection type."
-  (when (region-active-p)
-    (car moder--selection)))
 
 (defun moder--in-string-p (&optional pos)
   "Return whether POS or current position is in string."
@@ -385,7 +374,7 @@ Looks up the state in moder-replace-state-name-list"
                 (pairs (cdr th-pairs))
                 (pre (thread-last
                        pairs
-                       (mapcar (lambda (it) (char-to-string (car it))))
+                       (mapcar (lambda (it) (char-to-string (car it)))) ;;TODO: check if dolist is faster
                        (moder--string-join " "))))
            (format "%s%s%s%s"
                    (propertize
@@ -495,8 +484,6 @@ Looks up the state in moder-replace-state-name-list"
         (upcase c)
       c)))
 
-
-
 (defun moder--make-button (string callback &optional data help-echo)
   "Copy from buttonize, which is available in Emacs 29.1"
   (let ((string
@@ -558,8 +545,8 @@ that bound to DEF. Otherwise, return DEF."
 
 (defun moder--second-sel-bound ()
   (and (secondary-selection-exist-p)
-       (cons (overlay-start mouse-secondary-overlay)
-             (overlay-end mouse-secondary-overlay))))
+       (cons (max (overlay-start mouse-secondary-overlay) (window-start))
+             (min (overlay-end mouse-secondary-overlay) (window-end)))))
 
 (defmacro moder--with-selection-fallback (&rest body)
   `(if (region-active-p)
@@ -588,10 +575,20 @@ that bound to DEF. Otherwise, return DEF."
                (undo-amalgamate-change-group ,handle))
            (cancel-change-group ,handle))))))
 
+(defmacro moder--with-selection (selection &rest body)
+  "Eval BODY with SELECTION being active. Save and restore current selection if it exists."
+  (declare (indent defun) (debug t))
+  `(let ((sel moder--selection))
+     (save-mark-and-excursion
+       (moder--select ,selection)
+       ,@body)
+     (moder--cancel-selection)
+     (when sel
+       (moder--select sel))))
+
 (defun moder--highlight-pre-command ()
   (unless (member this-command '(moder-search))
     (moder--remove-match-highlights))
-  (moder--remove-expand-highlights)
   (moder--remove-search-highlight))
 
 (defun moder--remove-fake-cursor (rol)
@@ -676,7 +673,11 @@ that bound to DEF. Otherwise, return DEF."
       (overlay-end mouse-secondary-overlay))
    (<= (overlay-start mouse-secondary-overlay)
        (point)
-       (overlay-end mouse-secondary-overlay))))
+       (overlay-end mouse-secondary-overlay))
+   (or (null (overlay-get mouse-secondary-overlay 'rectangle-start))
+       (and
+        (<= start (or (overlay-get mouse-secondary-overlay 'rectangle-start) (current-column)))
+        (>= end (or (overlay-get mouse-secondary-overlay 'rectangle-end) (current-column)))))))
 
 (defun moder--narrow-secondary-selection ()
   (narrow-to-region (overlay-start mouse-secondary-overlay)
@@ -707,6 +708,235 @@ that bound to DEF. Otherwise, return DEF."
 
    ((null moder-keypad-leader-dispatch)
     (alist-get 'leader moder-keymap-alist))))
+
+(defun moder--get-forward-function (thing)
+  "Return a forward function for THING."
+  (or (nth 2 (plist-get thing moder--thing-registry))
+      (get thing 'forward-op)
+      (intern-soft (format "forward-%s" thing))))
+
+(defun moder--move-current-selection (start end &optional backward)
+  "Move current `moder--selection' to region (START . END). IF BACKWARD is non-nil, swap mark and point."
+  (when moder--selection
+    (thread-first
+      (moder--make-selection (moder--selection-type)
+                             (if backward end start)
+                             (if backward start end)
+                             nil
+                             (moder--selection-thing))
+      (moder--select t backward))))
+
+(defun moder--vector-to-list (vec)
+  "Return a list containing all elements of vector VEC."
+  (when (vectorp vec)
+    (let* ((res (list))
+           (len (length vec))
+           (elt nil)
+           (i 0))
+      (while (and (< i len))
+        (push (aref vec i) res)
+        (incf i))
+      (nreverse res))))
+
+(defun moder--list-to-vector (list)
+  "Return a vector containing all elements of list LIST."
+  (when (listp list)
+    (let* ((len (length list))
+           (vec (make-vector len nil))
+           (i 0))
+      (dolist (elt list vec)
+        (aset vec i elt)
+        (incf i)))))
+
+(defun moder--vector-full-length (vec)
+  "Return the length of the vector VEC without tail nil elements."
+  (when (vectorp vec)
+    (let* ((len (length vec))
+           (i 0)
+           (last-full 0))
+      (while (< i len)
+        (setq last-full (if (aref vec i) i last-full))
+        (incf i))
+      ;; 1+ i to account for 0-indexing
+      (1+ last-full))))
+
+(define-inline moder--vector-truncate-left (vec)
+  (seq-drop-while #'null vec))
+
+(define-inline moder--vector-truncate-right (vec)
+  (nreverse (moder--vector-truncate-left (nreverse vec))))
+
+(defmacro moder--save-state (&rest body)
+  "Evaluate BODY and restore previous `moder' state."
+  `(let ((state moder--current-state))
+     (save-mark-and-excursion
+       ,@body)
+     (unless (eq state moder--current-state)
+       (moder--switch-state state))))
+
+(defmacro moder--save-symbol-value (sym &rest body)
+  "Save current value of SYM, evaluate BODY and restory the value."
+  (declare (indent defun))
+  `(let ((moder--save-symbol-binding (symbol-value ,sym)))
+     (prog1
+         (progn ,@body)
+       (set ,sym moder--save-symbol-binding))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; RING ROTATING FUNCTIONS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun moder--kmacro-head-to-elt (head)
+  (if (not (vectorp head))
+      head
+    (kmacro head)))
+
+(defun moder--rotate-list (list &optional n head-sym into-elt-fn)
+  "Rotate LIST N places. If N is negative, rotate backwards."
+  (message "HEAD-SYM: %S" head-sym)
+  (let* ((n (or (and (numberp n) n) 1))
+         (into-elt-fn (or into-elt-fn #'identity))
+         (list (if (and head-sym (symbolp head-sym) (boundp head-sym))
+                   (cons (funcall into-elt-fn (symbol-value head-sym)) list)
+                 list))
+         (old-head (car list))
+         (num-places (length list))
+         (idx (mod (abs n) num-places))
+         (idx (if (< n 0) (- num-places idx) idx))
+         (new-head)
+         (tail nil)
+         (curr nil)
+         (i 0))
+    (if (= idx 0) ;; if idx is 0 dont do anything
+        list
+      (message "idx decided to be %d" idx)
+      (while (and (consp list) (not new-head))
+        (setq curr (car list)
+              list (cdr list))
+        (if (= i idx)
+            (setq new-head curr)
+          (push curr tail))
+        (message "tail is %S curr is %S rest is %S" tail curr list)
+        (incf i))
+      (cons new-head (append list (nreverse tail))))))
+
+(defun moder--rotate-ring (list n head-sym into-elt from-elt)
+  "Rotate LIST N places and update temp state."
+  (when (not moder--rotate-ring-in-progress)
+    (setq moder--rotate-ring-start-head (or (and head-sym (symbol-value head-sym)) (car list))
+          moder--rotate-ring-start-rest (or (and head-sym list) (cdr list))
+          moder--rotate-ring-in-progress t))
+  (let* ((rotated (moder--rotate-list list n head-sym into-elt)))
+    (setq moder--rotate-ring-temp-head (car rotated)
+          moder--rotate-ring-temp-rest (cdr rotated))
+    (if (numberp moder--rotate-ring-offset)
+        (incf moder--rotate-ring-offset ))
+    rotated))
+
+(defun moder--rotate-ring-update-message ()
+  (when (bound-and-true-p moder--rotate-ring-in-progress)
+    (clear-minibuffer-message)
+    (moder--rotate-ring-message  "TODO: Message!" 'moder--rotate-ring-temp-rest arg 'moder--rotate-ring-temp-head)))
+
+(defun moder--rotate-ring-reset ()
+  "Reset the ring state to before rotation start"
+  (interactive)
+  (when moder--rotate-ring-in-progress
+    (setq moder--rotate-ring-temp-rest moder--rotate-ring-start-rest
+          moder--rotate-ring-temp-head moder--rotate-ring-start-head)))
+
+(defun moder--rotate-ring-swap ()
+  "Swap "
+  (interactive)
+  (when moder--rotate-ring-in-progress
+    (setq moder--rotate-ring-)))
+
+(defun moder--rotate-ring-next (n)
+  (interactive "p")
+  (when moder--rotate-ring-in-progress
+    (moder--rotate-ring moder--ring-temp-rest n 'moder--ring-temp-head moder--rotate-ring-temp-into-elt-fn)))
+
+(defun moder--rotate-ring-prev (n)
+  (when moder--rotate-ring-prev
+    (moder--rotate-ring moder--ring-temp-rest (- n) 'moder--ring-temp-head moder--rotate-ring-temp-into-elt-fn)))
+
+(defun moder--rotate-ring-pred ()
+  "If this function returns non-nil, keep rotate ring transient map."
+  (memq this-command moder--rotate-ring-keep-commands))
+
+(defun moder--rotate-ring-transient-map ()
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "n") #'moder--rotate-ring-next)
+    (define-key map (kbd "p") #'moder--rotate-ring-prev)
+    (define-key map (kbd "s" #'moder--rotate-ring-swap))
+    (define-key map (kbd "r") #'moder--rotate-ring-reset)
+    (define-key map (kbd "") #'moder--rotate-ring-choose)
+    (define-key map (kbd "SPC") #'moder--rotate-ring-cancel)
+    map))
+
+(defun moder--ring-head (ring &optional head-var)
+  (or (and head-var (symbol-value head-var))
+      (car-safe ring)))
+
+(defun moder--ring-elt-to-string (object)
+  (cond
+   ((markerp object) (format "@%d in %s" (marker-position marker) (or (marker-buffer marker) "no buffer")))
+   ((vectorp object) (format "%s" (format-kbd-macro object)))
+   ((kmacro-p object) (format "%s" (edmacro-format-keys (kmacro--keys object))))
+   (t (prin1-to-string object))))
+
+(defun moder--ring-render-elt (elt max-len)
+  (let ((rendered (moder--ring-elt-to-string elt)))
+    (if (length> rendered max-len)
+        (format "%s..." (seq-take rendered (- max-len 3)))
+      (let* ((len (length rendered))
+             (rest (- max-len len))
+             (right (/ rest 2))
+             (left (- rest right)))
+        (concat (make-string left 32) rendered (make-string right 32))))))
+
+(defun moder--ring-render-head (head max-len)
+  (propertize (moder--ring-render-elt head max-len) 'face 'match))
+
+(defun moder--ring-render-rest (ring max-w)
+  (when (sequencep ring)
+    (apply #'concat (mapcar (lambda (elt)
+                              (concat
+                               (propertize
+                                (moder--ring-render-elt elt max-w)
+                                'face
+                                'flymake-warning-echo-at-eol)
+                               "  "))
+                            ring))))
+
+(defun moder--rotate-ring-message (message ring-var arg &optional head-var)
+  (let* ((head (moder--ring-head (symbol-value ring-var) head-var))
+         (ring (if (symbol-value head-var) (symbol-value ring-var) (cdr (symbol-value ring-var))))
+         (max-w (/ (frame-width (selected-frame)) 8))
+         (head (moder--ring-render-head head max-w))
+         (idx (/ 8 2))
+         (tail (seq-take (reverse ring) (1- idx)))
+         (rest (seq-take ring idx))
+         (resize-mini-windows nil)
+         (dir-arrow (if (> arg 0) ">" "<"))
+         (max-mini-window-height 1))
+    (message (format "%s: %s %s %s %s %s " message
+                     (moder--ring-render-rest tail max-w)
+                     dir-arrow head dir-arrow
+                     (moder--ring-render-rest rest max-w)))))
+
+(defun moder--rotate-ring-exit ()
+  (remove-hook 'post-command-hook #'moder--rotate-ring-update-message)
+  (setq moder--ring-last-command nil
+        moder--ring-start-head nil
+        moder--ring-start-rest nil))
+
+(defun moder--rotate-ring-set-transient-map (head rest)
+  "Set transient map for rotating rings."
+  (setq moder--ring-last-command this-command
+        moder--ring-start-head head
+        moder--ring-start-rest rest)
+  (set-transient-map (moder--rotate-ring-transient-map) #'moder--rotate-ring-pred #'moder--rotate-ring-exit))
 
 (provide 'moder-util)
 ;;; moder-util.el ends here
