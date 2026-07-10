@@ -32,8 +32,89 @@
 (require 'moder-thing)
 (require 'moder-beacon)
 (require 'moder-keypad)
-(require 'moder-selection)
 (require 'array)
+
+(defun moder--selection-fallback ()
+  "Run selection fallback commands."
+  (if-let* ((fallback (alist-get this-command moder-selection-command-fallback)))
+      (call-interactively fallback)
+    (error "No selection")))
+
+(defun moder--pop-selection ()
+  "Pop a selection from variable `moder--selection-history' and activate."
+  (when moder--selection-history
+    (let ((sel (pop moder--selection-history)))
+      (moder--select-without-history sel))))
+
+(defun moder--make-selection (type mark pos &optional expand)
+  "Make a selection with TYPE, MARK and POS.
+
+The direction of selection is MARK -> POS."
+  (if (and (region-active-p) expand)
+      (let ((orig-mark (mark))
+            (orig-pos (point)))
+        (if (< mark pos)
+            (list type (min orig-mark orig-pos) pos)
+          (list type (max orig-mark orig-pos) pos)))
+    (list type mark pos)))
+
+(defun moder--set-mark (&optional location nomsg activate)
+  "As `push-mark', but don't push old mark to mark ring."
+  (setq location (or location (point)))
+  (if (or activate (not transient-mark-mode))
+      (set-mark location)
+    (set-marker (mark-marker) location))
+  (or nomsg executing-kbd-macro (> (minibuffer-depth) 0)
+      (message "Mark set"))
+  nil)
+
+(defun moder--select (selection &optional activate backward)
+  "Mark the SELECTION."
+  (let* ((old-sel-type (moder--selection-type))
+         (sel-type (car selection))
+         (beg (cadr selection))
+         (end (caddr selection))
+         (to-go (if backward beg end))
+         (to-mark (if backward end beg)))
+    (when sel-type
+      (if moder--selection
+          (unless (equal moder--selection (car moder--selection-history))
+            (push moder--selection moder--selection-history))
+        (push (moder--make-selection nil (point) (point)) moder--selection-history))
+      (cond
+       ((null old-sel-type)
+        (goto-char to-go)
+        (push-mark to-mark t activate))
+       (t
+        (goto-char to-go)
+        (set-mark to-mark)))
+      (setq moder--selection selection))))
+
+(defun moder--select-without-history (selection)
+  "Mark the SELECTION without recording it in `moder--selection-history'."
+  (let ((sel-type (car selection))
+        (mark (cadr selection))
+        (pos (caddr selection)))
+    (goto-char pos)
+    (if (not sel-type)
+        (progn
+          (deactivate-mark)
+          (message "No previous selection.")
+          (moder--cancel-selection))
+      (push-mark mark t t)
+      (setq moder--selection selection))))
+
+(defun moder--cancel-selection ()
+  "Cancel current selection, clear selection history and deactivate the mark.
+
+If there's a selection history, move the mark to the beginning position
+in the history before deactivation."
+  (when moder--selection-history
+    (let ((orig-pos (cadar (last moder--selection-history))))
+      (set-marker (mark-marker) orig-pos)))
+  (setq moder--selection-history nil
+        moder--selection nil)
+  (deactivate-mark t))
 
 (defun moder-undo ()
   "Cancel current selection then undo."
@@ -51,7 +132,9 @@
 (defun moder-pop-selection ()
   (interactive)
   (moder--with-selection-fallback
-   (moder--pop-selection)))
+   (moder--pop-selection)
+   (when (and (region-active-p) moder--expand-nav-function)
+     (moder--maybe-highlight-num-positions))))
 
 (defun moder-pop-all-selection ()
   (interactive)
@@ -68,7 +151,8 @@ This command supports `moder-selection-command-fallback'."
    (moder--execute-kbd-macro moder--kbd-exchange-point-and-mark)
    (if (member last-command
                '(moder-visit moder-search moder-mark-symbol moder-mark-word))
-       (moder--highlight-regexp-in-buffer (car regexp-search-ring)))))
+       (moder--highlight-regexp-in-buffer (car regexp-search-ring))
+     (moder--maybe-highlight-num-positions))))
 
 ;;; Buffer
 
@@ -430,9 +514,9 @@ With argument ARG, do this that many times."
     (when moder-select-on-append
       (setq-local moder--insert-activate-mark t))))
 
-(defun moder-open-above (arg)
+(defun moder-open-above ()
   "Open a newline above and switch to INSERT state."
-  (interactive "p")
+  (interactive)
   (if moder--temp-normal
       (progn
         (message "Quit temporary normal mode")
@@ -440,7 +524,9 @@ With argument ARG, do this that many times."
     (moder--switch-state 'insert)
     (goto-char (line-beginning-position))
     (save-mark-and-excursion
-      (newline arg))
+      (newline))
+    ;; (save-mark-and-excursion
+    ;;   (moder--insert "\n"))
     (indent-according-to-mode)
     (setq-local moder--insert-pos (point))
     (when moder-select-on-open
@@ -462,9 +548,9 @@ With argument ARG, do this that many times."
     (when moder-select-on-open
       (setq-local moder--insert-activate-mark t))))
 
-(defun moder-open-below (arg)
+(defun moder-open-below ()
   "Open a newline below and switch to INSERT state."
-  (interactive "p")
+  (interactive)
   (if moder--temp-normal
       (progn
         (message "Quit temporary normal mode")
@@ -630,12 +716,12 @@ Will cancel all other selection, except char selection. "
   (interactive)
   (if (region-active-p)
       (thread-first
-        (moder--create-selection '(expand . char) (mark) (point))
+        (moder--make-selection '(expand . char) (mark) (point))
         (moder--select t))
     (when moder-use-cursor-position-hack
       (forward-char 1))
     (thread-first
-      (moder--create-selection '(expand . char) (point) (point))
+      (moder--make-selection '(expand . char) (point) (point))
       (moder--select t)))
   (moder--execute-kbd-macro moder--kbd-backward-char))
 
@@ -644,10 +730,10 @@ Will cancel all other selection, except char selection. "
   (interactive)
   (if (region-active-p)
       (thread-first
-        (moder--create-selection '(expand . char) (mark) (point))
+        (moder--make-selection '(expand . char) (mark) (point))
         (moder--select t))
     (thread-first
-      (moder--create-selection '(expand . char) (point) (point))
+      (moder--make-selection '(expand . char) (point) (point))
       (moder--select t)))
   (moder--execute-kbd-macro moder--kbd-forward-char))
 
@@ -692,10 +778,10 @@ See `moder-prev-line' for how prefix arguments work."
   (interactive "P")
   (if (region-active-p)
       (thread-first
-        (moder--create-selection '(expand . char) (mark) (point))
+        (moder--make-selection '(expand . char) (mark) (point))
         (moder--select t))
     (thread-first
-      (moder--create-selection '(expand . char) (point) (point))
+      (moder--make-selection '(expand . char) (point) (point))
       (moder--select t)))
   (cond
    ((moder--with-universal-argument-p arg)
@@ -711,10 +797,10 @@ See `moder-next-line' for how prefix arguments work."
   (interactive "P")
   (if (region-active-p)
       (thread-first
-        (moder--create-selection '(expand . char) (mark) (point))
+        (moder--make-selection '(expand . char) (mark) (point))
         (moder--select t))
     (thread-first
-      (moder--create-selection '(expand . char) (point) (point))
+      (moder--make-selection '(expand . char) (point) (point))
       (moder--select t)))
   (cond
    ((moder--with-universal-argument-p arg)
@@ -744,7 +830,7 @@ highlighted in the buffer."
          (end (cdr bounds)))
     (when beg
       (thread-first
-        (moder--create-selection (cons 'expand type) beg end)
+        (moder--make-selection (cons 'expand type) beg end)
         (moder--select t backward))
       (when (stringp regexp-format)
         (let ((search (format regexp-format (regexp-quote (buffer-substring-no-properties beg end)))))
@@ -836,12 +922,15 @@ If N is negative, select to the beginning of the previous Nth thing instead."
                 (point)))))
     (when p
       (thread-first
-        (moder--create-selection
+        (moder--make-selection
          new-type
          (moder--fix-thing-selection-mark thing p m include-syntax)
          p
          expand)
-        (moder--select t)))))
+        (moder--select t))
+      (moder--maybe-highlight-num-positions
+       (cons (apply-partially #'moder--backward-thing-1 thing)
+             (apply-partially #'moder--forward-thing-1 thing))))))
 
 (defun moder-next-word (n)
   "Select to the end of the next Nth word.
@@ -937,8 +1026,9 @@ numeric, repeat times.
                (setq p (line-end-position))
              (setq p (line-beginning-position)))))
         (thread-first
-          (moder--create-selection '(expand . line) orig p expand)
-          (moder--select t))))
+          (moder--make-selection '(expand . line) orig p expand)
+          (moder--select t))
+        (moder--maybe-highlight-num-positions '(moder--backward-line-1 . moder--forward-line-1))))
      (t
       (let ((m (if forward
                    (line-beginning-position)
@@ -955,8 +1045,9 @@ numeric, repeat times.
                        (backward-char 1))
                      (line-beginning-position))))))
         (thread-first
-          (moder--create-selection '(expand . line) m p expand)
-          (moder--select t)))))))
+          (moder--make-selection '(expand . line) m p expand)
+          (moder--select t))
+        (moder--maybe-highlight-num-positions '(moder--backward-line-1 . moder--forward-line-1)))))))
 
 (defun moder-line-expand (n)
   "Like `moder-line', but always expand."
@@ -981,9 +1072,9 @@ This command will expand line selection."
          (beg (car beg-end))
          (end (cdr beg-end)))
     (thread-first
-      (moder--create-selection '(expand . line)
-                               (if (and expand rbeg) (min rbeg beg) beg)
-                               (if (and expand rend) (max rend end) end))
+      (moder--make-selection '(expand . line)
+                             (if (and expand rbeg) (min rbeg beg) beg)
+                             (if (and expand rend) (max rend end) end))
       (moder--select t (> orig-p beg)))
     (recenter)))
 
@@ -1040,8 +1131,9 @@ numeric, repeat times.
                (setq p (moder--visual-line-end-position))
              (setq p (moder--visual-line-beginning-position)))))
         (thread-first
-          (moder--create-selection '(expand . line) orig p expand)
-          (moder--select t))))
+          (moder--make-selection '(expand . line) orig p expand)
+          (moder--select t))
+        (moder--maybe-highlight-num-positions '(moder--backward-visual-line-1 . moder--forward-visual-line-1))))
      (t
       (let ((m (if forward
                    (moder--visual-line-beginning-position)
@@ -1057,8 +1149,9 @@ numeric, repeat times.
                        (backward-char 1))
                      (moder--visual-line-beginning-position))))))
         (thread-first
-          (moder--create-selection '(expand . line) m p expand)
-          (moder--select t)))))))
+          (moder--make-selection '(expand . line) m p expand)
+          (moder--select t))
+        (moder--maybe-highlight-num-positions '(moder--backward-visual-line-1 . moder--forward-visual-line-1)))))))
 
 (defun moder-visual-line-expand (n)
   "Like `moder-line', but always expand."
@@ -1112,8 +1205,9 @@ numeric, repeat times.
           (setq m (point)))))
     (when (and p m)
       (thread-first
-        (moder--create-selection '(expand . block) m p)
-        (moder--select t)))))
+        (moder--make-selection '(expand . block) m p)
+        (moder--select t))
+      (moder--maybe-highlight-num-positions '(moder--backward-block . moder--forward-block)))))
 
 (defun moder-to-block (arg)
   "Expand to next block.
@@ -1138,8 +1232,9 @@ Will create selection with type (expand . block)."
           (setq m (point)))))
     (when (and p m)
       (thread-first
-        (moder--create-selection '(expand . block) orig-pos p t)
-        (moder--select t)))))
+        (moder--make-selection '(expand . block) orig-pos p t)
+        (moder--select t))
+      (moder--maybe-highlight-num-positions '(moder--backward-block . moder--forward-block)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; JOIN
@@ -1154,7 +1249,7 @@ Will create selection with type (expand . block)."
         (setq mark (point))))
     (when pos
       (thread-first
-        (moder--create-selection '(expand . join) pos mark)
+        (moder--make-selection '(expand . join) pos mark)
         (moder--select t)))))
 
 (defun moder--join-backward ()
@@ -1168,7 +1263,7 @@ Will create selection with type (expand . block)."
         (forward-char -1))
       (setq mark (point)))
     (thread-first
-      (moder--create-selection '(expand . join) mark pos)
+      (moder--make-selection '(expand . join) mark pos)
       (moder--select t))))
 
 (defun moder--join-both ()
@@ -1183,7 +1278,7 @@ Will create selection with type (expand . block)."
         (forward-char 1))
       (setq pos (point)))
     (thread-first
-      (moder--create-selection '(expand . join) mark pos)
+      (moder--make-selection '(expand . join) mark pos)
       (moder--select t))))
 
 (defun moder-join (arg)
@@ -1253,10 +1348,12 @@ with UNIVERSAL ARGUMENT, search both side."
     (if (not end)
         (message "char %s not found" ch-str)
       (thread-first
-        (moder--create-selection '(select . find)
-                                 beg end expand)
+        (moder--make-selection '(select . find)
+                               beg end expand)
         (moder--select t))
-      (setq moder--last-find ch))))
+      (setq moder--last-find ch)
+      (moder--maybe-highlight-num-positions
+       '(moder--find-continue-backward . moder--find-continue-forward)))))
 
 (defun moder-find-expand (n ch)
   (interactive "p\ncExpand find:")
@@ -1276,10 +1373,12 @@ with UNIVERSAL ARGUMENT, search both side."
     (if (not end)
         (message "char %s not found" ch-str)
       (thread-first
-        (moder--create-selection '(select . till)
-                                 beg (+ end fix-pos) expand)
+        (moder--make-selection '(select . till)
+                               beg (+ end fix-pos) expand)
         (moder--select t))
-      (setq moder--last-till ch))))
+      (setq moder--last-till ch)
+      (moder--maybe-highlight-num-positions
+       '(moder--till-continue-backward . moder--till-continue-forward)))))
 
 (defun moder-till-expand (n ch)
   (interactive "p\ncExpand till:")
@@ -1326,7 +1425,7 @@ To search backward, use \\[negative-argument]."
                  (beg (if reverse (marker-position marker-end) (marker-position marker-beg)))
                  (end (if reverse (marker-position marker-beg) (marker-position marker-end))))
             (thread-first
-              (moder--create-selection '(select . visit) beg end)
+              (moder--make-selection '(select . visit) beg end)
               (moder--select t))
             (if reverse
                 (message "Reverse search: %s" search)
@@ -1381,7 +1480,7 @@ To search backward, use \\[negative-argument]."
                (beg (if (> pos visit-point) (marker-position marker-end) (marker-position marker-beg)))
                (end (if (> pos visit-point) (marker-position marker-beg) (marker-position marker-end))))
           (thread-first
-            (moder--create-selection '(select . visit) beg end)
+            (moder--make-selection '(select . visit) beg end)
             (moder--select t))
           (moder--push-search text)
           (moder--ensure-visible)
@@ -1394,85 +1493,65 @@ To search backward, use \\[negative-argument]."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun moder-thing-prompt (prompt-text)
-  (when-let* ((char (read-char
-                     (if moder-display-thing-help
-                         (concat (moder--render-char-thing-table) "\n" prompt-text)
-                       prompt-text)))
-              (thing (cdr (assoc char moder-local-char-thing-table))))
-    thing))
+  (read-char
+   (if moder-display-thing-help
+       (concat (moder--render-char-thing-table) "\n" prompt-text)
+     prompt-text)))
 
 (defun moder--thing-get-direction (cmd)
   (or
    (alist-get cmd moder-thing-selection-directions)
    'forward))
 
-(defun moder-beginning-of-thing (thing n)
-  "Select to the beginning of Nth THING."
-  (interactive (list (moder-thing-prompt "Beginning of: ") (or current-prefix-arg 1)))
+(defun moder-beginning-of-thing (thing)
+  "Select to the beginning of THING."
+  (interactive (list (moder-thing-prompt "Beginning of: ")))
   (save-window-excursion
     (let ((back (equal 'backward (moder--thing-get-direction 'beginning)))
-          (bounds (moder--parse-range-of-thing thing 'inner)))
+          (bounds (moder--parse-inner-of-thing-char thing)))
       (when bounds
         (thread-first
-          (moder--create-selection '(select . thing)
-                                   (if back (point) (car bounds))
-                                   (if back (car bounds) (point))
-                                   nil
-                                   thing)
-          (moder--select t)))))
-  (moder--thing-set-transient-map))
+          (moder--make-selection '(select . transient)
+                                 (if back (point) (car bounds))
+                                 (if back (car bounds) (point)))
+          (moder--select t))))))
 
-(defun moder-end-of-thing (thing n)
-  "Select to the end of Nth THING."
-  (interactive (list (moder-thing-prompt "End of: ") (or current-prefix-arg 1)))
+(defun moder-end-of-thing (thing)
+  "Select to the end of THING."
+  (interactive (list (moder-thing-prompt "End of: ")))
   (save-window-excursion
     (let ((back (equal 'backward (moder--thing-get-direction 'end)))
-          (bounds (moder--parse-range-of-thing thing 'inner)))
+          (bounds (moder--parse-inner-of-thing-char thing)))
       (when bounds
         (thread-first
-          (moder--create-selection '(select . thing)
-                                   (if back (cdr bounds) (point))
-                                   (if back (point) (cdr bounds))
-                                   nil
-                                   thing)
-          (moder--select t)))))
-  (moder--thing-set-transient-map))
+          (moder--make-selection '(select . transient)
+                                 (if back (cdr bounds) (point))
+                                 (if back (point) (cdr bounds)))
+          (moder--select t))))))
 
-(defun moder--select-range (back bounds &optional thing)
+(defun moder--select-range (back bounds)
   (when bounds
     (thread-first
-      (moder--create-selection '(select . transient)
-                               (if back (cdr bounds) (car bounds))
-                               (if back (car bounds) (cdr bounds))
-                               nil
-                               thing)
-      (moder--select t))))
-
-(defun moder--select-thing (back bounds thing &optional expand count)
-  (when bounds
-    (thread-first
-      (moder--create-selection '(select . thing)
-                               (if back (cdr bounds) (car bounds))
-                               (if back (car bounds) (cdr bounds))
-                               expand
-                               thing)
+      (moder--make-selection '(select . transient)
+                             (if back (cdr bounds) (car bounds))
+                             (if back (car bounds) (cdr bounds)))
       (moder--select t))))
 
 (defun moder-inner-of-thing (thing)
   "Select inner (excluding delimiters) of THING."
   (interactive (list (moder-thing-prompt "Inner of: ")))
-  (let ((back (equal 'backward (moder--thing-get-direction 'inner)))
-        (bounds (moder--parse-range-of-thing thing 'inner)))
-    (moder--select-thing back bounds thing))
-  (moder--thing-set-transient-map))
+  (save-window-excursion
+    (let ((back (equal 'backward (moder--thing-get-direction 'inner)))
+          (bounds (moder--parse-inner-of-thing-char thing)))
+      (moder--select-range back bounds))))
 
-(defun moder-bounds-of-thing (thing n)
-  "Select bounds (including delimiters) of N THING."
-  (interactive (list (moder-thing-prompt "Bounds of: ") (or current-prefix-arg 1)))
-  (let ((back (equal 'backward (moder--thing-get-direction 'bounds)))
-        (bounds (moder--parse-range-of-thing thing 'bounds)))
-    (moder--select-thing back bounds thing))
-  (moder--thing-set-transient-map))
+(defun moder-bounds-of-thing (thing)
+  "Select bounds (including delimiters) of THING."
+  (interactive (list (moder-thing-prompt "Bounds of: ")))
+  (save-window-excursion
+    (let ((back (equal 'backward (moder--thing-get-direction 'bounds)))
+          (bounds (moder--parse-bounds-of-thing-char thing)))
+      (moder--select-range back bounds))))
 
 (defun moder-indent ()
   "Indent region or current line."
@@ -1492,9 +1571,7 @@ To search backward, use \\[negative-argument]."
     (setq mark-ring (cons (copy-marker (mark-marker)) mark-ring))
     (set-marker (mark-marker) (car (last mark-ring)) (current-buffer))
     (setq mark-ring (nbutlast mark-ring))
-    (goto-char (marker-position (car (last mark-ring))))
-    (when moder-mark-recenter-after-unpop
-      (recenter nil t))))
+    (goto-char (marker-position (car (last mark-ring))))))
 
 (defun moder-pop-to-mark ()
   "Alternative command to `pop-to-mark-command'.
@@ -1504,9 +1581,7 @@ Before jump, a mark of current location will be created."
   (moder--cancel-selection)
   (unless (member last-command '(moder-pop-to-mark moder-unpop-to-mark moder-pop-or-unpop-to-mark))
     (setq mark-ring (append mark-ring (list (point-marker)))))
-  (pop-to-mark-command)
-  (when moder-mark-recenter-after-pop
-    (recenter nil t)))
+  (pop-to-mark-command))
 
 (defun moder-pop-or-unpop-to-mark (arg)
   "Call `moder-pop-to-mark' or `moder-unpop-to-mark', depending on ARG.
@@ -1532,9 +1607,7 @@ Before jump, a mark of current location will be created."
   (moder--cancel-selection)
   (unless (member last-command '(moder-pop-to-global-mark moder-pop-to-mark moder-unpop-to-mark))
     (setq global-mark-ring (append global-mark-ring (list (point-marker)))))
-  (moder--execute-kbd-macro moder--kbd-pop-global-mark)
-  (when moder-mark-recenter-after-global-pop
-    (recenter nil t)))
+  (moder--execute-kbd-macro moder--kbd-pop-global-mark))
 
 (defun moder-back-to-indentation ()
   "Back to indentation."
@@ -1571,18 +1644,18 @@ Argument ARG if not nil, switching in a new window."
         (call-interactively #'abort-recursive-edit))
     (call-interactively #'keyboard-quit)))
 
-(defun moder-escape-or-normal-modal (&optional no-hook)
+(defun moder-escape-or-normal-modal ()
   "Keyboard escape quit or switch to normal state."
-  (interactive "p")
+  (interactive)
   (cond
    ((minibufferp)
     (if (fboundp 'minibuffer-keyboard-quit)
         (call-interactively #'minibuffer-keyboard-quit)
       (call-interactively #'abort-recursive-edit)))
-   ((moder-keypad-mode-p)
-    (moder--exit-keypad-state))
+   ;; ((moder-keypad-mode-p)
+   ;;  (moder--exit-keypad-state))
    ((moder-insert-mode-p)
-    (moder--switch-state 'normal (bound-and-true-p no-hook)))
+    (moder--switch-state 'normal))
    (t
     (moder--switch-state 'normal))))
 
@@ -1594,43 +1667,24 @@ Argument ARG if not nil, switching in a new window."
 (defun moder-expand (&optional n)
   (interactive)
   (moder--with-selection-fallback
-   (when (and (region-active-p)
+   (when (and moder--expand-nav-function
+              (region-active-p)
               (moder--selection-type))
      (let* ((n (or n (string-to-number (char-to-string last-input-event))))
             (n (if (= n 0) 10 n))
-            (fn (moder--get-forward-function (moder--selection-thing)))
-            ;; TODO: figure out what does `moder-expand-selection-type' change
             (sel-type (cons moder-expand-selection-type (cdr (moder--selection-type)))))
-       (when (functionp fn)
-         (thread-first
-           (moder--create-selection sel-type (mark)
-                                    (save-mark-and-excursion
-                                      (let ((moder--expanding-p t))
-                                        (dotimes (_ n)
-                                          (funcall fn (if (moder--direction-forward) 1 -1))))
-                                      (point)))
-           (moder--select t)))))))
-
-(defun moder-expand-thing (&optional n)
-  "Expand current selection by N THINGS."
-  (interactive "p")
-  (moder--with-selection-fallback
-   (when (and (region-active-p) (moder--selection-type))
-     (let* ((n (if (= n 0) 10 n))
-            (thing (alist-get last-input-event moder-local-char-thing-table))
-            (fn (moder--get-forward-function thing))
-            (arg (if (moder--direction-forward-p) 1 -1)))
-       (when (functionp fn)
-         (thread-first
-           (moder--expand-selection '(select . thing) (mark)
-                                    (save-mark-and-excursion
-                                      (dotimes (_ n)
-                                        (funcall fn arg))
-                                      (point))
-                                    thing
-                                    (abs n)
-                                    'moder-expand-thing)
-           (moder--select t)))))))
+       (thread-first
+         (moder--make-selection sel-type (mark)
+                                (save-mark-and-excursion
+                                  (let ((moder--expanding-p t))
+                                    (dotimes (_ n)
+                                      (funcall
+                                       (if (moder--direction-backward-p)
+                                           (car moder--expand-nav-function)
+                                         (cdr moder--expand-nav-function)))))
+                                  (point)))
+         (moder--select t))
+       (moder--maybe-highlight-num-positions moder--expand-nav-function)))))
 
 (defun moder-expand-1 () (interactive) (moder-expand 1))
 (defun moder-expand-2 () (interactive) (moder-expand 2))
@@ -1679,12 +1733,12 @@ Argument ARG if not nil, switching in a new window."
       (cl-loop for ov in (reverse ov-list) do
                (goto-char (overlay-start ov))
                (thread-first
-                 (moder--create-selection 'line (line-end-position) (line-beginning-position))
+                 (moder--make-selection 'line (line-end-position) (line-beginning-position))
                  (moder--select t))
                (call-last-kbd-macro)
                (delete-overlay ov))))))
 
-(defun moder-kmacro-regex-matches (arg)
+(defun moder-kmacro-matches (arg)
   "Apply KMacro by search.
 
 Use negative argument for backward application."
@@ -1697,42 +1751,13 @@ Use negative argument for backward application."
                 (re-search-backward s nil t)
               (re-search-forward s nil t))
        (thread-first
-         (moder--create-selection '(select . visit)
-                                  (if back
-                                      (point)
-                                    (match-beginning 0))
-                                  (if back
-                                      (match-end 0)
-                                    (point)))
-         (moder--select t))
-       (let ((ov (make-overlay (region-beginning) (region-end))))
-         (unwind-protect
-             (progn
-               (kmacro-call-macro nil))
-           (progn
-             (if back
-                 (goto-char (min (point) (overlay-start ov)))
-               (goto-char (max (point) (overlay-end ov))))
-             (delete-overlay ov))))))))
-
-(defun moder-kmacro-search-matches (arg)
-  "Apply KMacro by search."
-  (interactive "p")
-  (let ((s (car search-ring))
-        (case-fold-search nil)
-        (back (moder--with-negative-argument-p arg)))
-    (moder--wrap-collapse-undo
-     (while (if back
-                (re-search-backward s nil t)
-              (re-search-forward s nil t))
-       (thread-first
-         (moder--create-selection '(select . visit)
-                                  (if back
-                                      (point)
-                                    (match-beginning 0))
-                                  (if back
-                                      (match-end 0)
-                                    (point)))
+         (moder--make-selection '(select . visit)
+                                (if back
+                                    (point)
+                                  (match-beginning 0))
+                                (if back
+                                    (match-end 0)
+                                  (point)))
          (moder--select t))
        (let ((ov (make-overlay (region-beginning) (region-end))))
          (unwind-protect
@@ -1773,62 +1798,11 @@ This command is a replacement for built-in `kmacro-end-macro'."
    (t
     (message "Can only end or call kmacro in NORMAL or MOTION state."))))
 
-(defun moder-repeat-change (_arg)
-  "Repeat last change recorded in current buffer.
-
-"
-  (interactive "p")
-  (moder--kmacro-repeat-last-change))
-
-(defun moder-last-change-to-kmacro (arg)
-  "Copy last change to the head of `kmacro-ring'.
-
-Pushes old head to the ring. If ARG is non-nil, copies ARGth change instead."
-  (interactive "p")
-  (let ((change (moder--kmacro-get-change (abs (- (abs arg) 1)))))
-    (unless (vectorp change)
-      (user-error "%s change is nil" (if (arg )(moder--ordinal arg))))
-    (when (and (vectorp change) (vectorp last-kbd-macro))
-      (kmacro-push-ring))
-    (setq last-kbd-macro change)
-    (message "Set `last-kbd-macro' to %S%s"
-             (seq-take change 10)
-             (if (length> change 10) "..." ""))))
-
-(defvar moder--edit-matches-overlays nil)
-
-(defun moder--edit-matches-mark ()
-  (when (and moder--match-overlays (not executing-kbd-macro)
-             (not defining-kbd-macro) (not (moder-beacon-mode-p)))
-    (mapc (lambda (ov)
-            (let ((beg (overlay-start ov))
-                  (end (overlay-end ov))
-                  (back (moder--direction-backward-p)))
-              (moder--beacon-add-overlay-at-region
-               '(select . visit)
-               beg
-               end
-               back)))
-          moder--match-overlays)))
-
-(defun moder-edit-matches-insert ()
-  ""
-  (interactive)
-  (moder--edit-matches-mark)
-  (moder--switch-state 'beacon)
-  (moder-beacon-insert))
-
-(defun moder-edit-matches-append ())
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; GRAB SELECTION
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar-local moder--secondary-selection-cookie nil)
-
 (defun moder--cancel-second-selection ()
-  (when (bound-and-true-p moder--secondary-selection-cookie)
-    (face-remap-remove-relative moder--secondary-selection-cookie))
   (delete-overlay mouse-secondary-overlay)
   (setq mouse-secondary-start (make-marker))
   (move-marker mouse-secondary-start (point)))
@@ -1837,9 +1811,7 @@ Pushes old head to the ring. If ARG is non-nil, copies ARGth change instead."
   "Create secondary selection or a marker if no region available."
   (interactive)
   (if (region-active-p)
-      (cond
-       ((moder--selection-rectangle-p moder--selection)))
-    (secondary-selection-from-region)
+      (secondary-selection-from-region)
     (moder--cancel-second-selection))
   (moder--cancel-selection))
 
@@ -1905,106 +1877,12 @@ Pushes old head to the ring. If ARG is non-nil, copies ARGth change instead."
     ;; for mouse events
     (describe-key key-list buffer)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; RING UTILITIES
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun moder-rotate-kmacro-ring (n)
-  "Rotate the current head of `kmacro-ring' by N places."
-  (interactive "p")
-  (let* ((rotated (moder--rotate-list kmacro-ring n 'last-kbd-macro #'kmacro))
-         (head (car rotated))
-         (keys (kmacro--keys head))
-         (format (kmacro--format head))
-         (counter (kmacro--counter head)))
-    (setq kmacro-ring (cdr rotated)
-          last-kbd-macro head
-          kmacro-counter counter
-          kmacro-counter-format format))
-  (moder--ring-rotate-message "Kmacro" 'kmacro-ring n 'last-kbd-macro)
-  (message "Current kmacro is %S" (kmacro-ring-head)))
-
-(defun moder-rotate-search-ring (n)
-  "Rotate the current `search-ring' head by N places."
-  (interactive "p")
-  (setq search-ring (moder--rotate-seq search-ring n))
-  (message "Current search is %S" (car search-ring)))
-
-(defun moder-rotate-regexp-search-ring (n)
-  "Rotate the current `regexp-search-ring' head by N places."
-  (interactive "p")
-  (setq regexp-search-ring (moder--rotate-seq regexp-search-ring n))
-  (message "Current regexp search is %S" (car regexp-search-ring)))
-
-(defun moder-rotate-kill-ring (n)
-  "Rotate the current `kill-ring' head by N places."
-  (interactive "p")
-  (setq kill-ring (moder--rotate-seq kill-ring n))
-  ;; TODO: update the yank pointer?
-  (message "Current kill is %S" (current-kill 0 t)))
-
-(defun moder-rotate-mark-ring (n)
-  "Rotate the current `mark-ring' head by N places."
-  (interactive "p")
-  (setq mark-ring (moder--rotate-seq mark-ring n))
-  (message "Current mark is %S" (car mark-ring)))
-
-(defun moder-rotate-global-mark-ring  (n)
-  "Rotate the current `global-mark-ring' head by N places."
-  (interactive "p")
-  (setq global-mark-ring (moder--rotate-seq global-mark-ring n))
-  (message "Current global mark is %S" (car global-mark-ring)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; REPEAT COMMANDS
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun moder-repeat (arg)
-  "Repeat last command according to `moder--repeat-last-command'."
-  (interactive "P")
-  (let ((last-repeatable-command moder--repeat-last-command))
-    (repeat arg)))
-
-(defun moder-repeat-op (arg)
-  (interactive "p"))
-
-(defun moder-noop ()
-  "Noop, to disable some keybindings in beacon state."
-  (interactive))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; REGISTERS
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun moder-selection-to-register (selection r)
-  "Save SELECTION to register R."
-  (interactive (list moder--selection (register-read-with-preview "Save to: ")))
-  (if (and selection r)
-      (set-register r moder--selection)
-    (error "No selection active")))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; DIRED
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; TODO: add kmacro selection
-(defun moder-dired-apply-kmacro-in-files (files how arg)
-  (interactive (list (dired-get-marked-files (moder-kmacro-how-prompt "How to apply kmacro: ") current-prefix-arg)) dired-mode)
-  (moder--kmacro-apply-in-files files how nil last-kbd-macro))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; IBUFFER
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun moder-ibuffer-apply-kmacro-in-buffers (bufs how)
-  (interactive (list (ibuffer-get-marked-buffers) (moder-kmacro-how-prompt "How to apply kmacro: ")) ibuffer-mode)
-  (moder--kmacro-appl))
-
 ;; aliases
 (defalias 'moder-backward-delete 'moder-backspace)
 (defalias 'moder-c-d 'moder-C-d)
 (defalias 'moder-c-k 'moder-C-k)
 (defalias 'moder-delete 'moder-C-d)
-(defalias 'this is a testmoder-cancel 'moder-cancel-selection)
+(defalias 'moder-cancel 'moder-cancel-selection)
 
 ;; removed commands
 
@@ -2013,6 +1891,16 @@ Pushes old head to the ring. If ARG is non-nil, copies ARGth change instead."
      (interactive)
      (message "Command removed, use `%s' instead." ,(symbol-name rep))))
 
+(moder--remove-command moder-begin-of-buffer moder-beginning-of-thing)
+(moder--remove-command moder-end-of-buffer moder-end-of-thing)
+(moder--remove-command moder-pop moder-pop-selection)
+(moder--remove-command moder-insert-at-begin moder-insert)
+(moder--remove-command moder-append-at-end moder-append)
+(moder--remove-command moder-head moder-left)
+(moder--remove-command moder-tail moder-right)
+(moder--remove-command moder-head-expand moder-left-expand)
+(moder--remove-command moder-tail-expand moder-right-expand)
+(moder--remove-command moder-block-expand moder-to-block)
 
 (provide 'moder-command)
 ;;; moder-command.el ends here

@@ -45,7 +45,7 @@
                       (when (and moder--insert-pos
                                  (not (= (point) moder--insert-pos)))
                         (thread-first
-                          (moder--create-selection '(select . transient) moder--insert-pos (point))
+                          (moder--make-selection '(select . transient) moder--insert-pos (point))
                           (moder--select moder--insert-activate-mark)))
                       (run-hooks 'moder-insert-exit-hook)
                       (setq-local moder--insert-pos nil
@@ -84,11 +84,9 @@
                         (progn
                           (setq moder--beacon-backup-hl-line (bound-and-true-p hl-line-mode)
                                 moder--beacon-defining-kbd-macro nil)
-                          (add-hook 'window-scroll-functions #'moder--beacon-update-overlays-for-preview nil t)
                           (hl-line-mode -1))
                       (when moder--beacon-backup-hl-line
-                        (hl-line-mode 1))
-                      (remove-hook 'window-scroll-functions #'moder--beacon-update-overlays-for-preview t)))
+                        (hl-line-mode 1))))
 
 ;;;###autoload
 (define-minor-mode moder-mode
@@ -132,8 +130,8 @@ This minor mode is used by moder-global-mode, should not be enabled directly."
     (let ((char (car pair))
           (thing (cdr pair)))
       (if (alist-get char into)
-          (setq into (moder--alist-set-preserve-ordering char thing into))
-        (push pair into))))
+          (setq-local into (moder--alist-set-preserve-ordering char thing into))
+        (add-to-list 'into pair))))
   into)
 
 (defun moder--setup-local-things ()
@@ -148,19 +146,20 @@ This minor mode is used by moder-global-mode, should not be enabled directly."
     ;; handle the mode-relative first
     (when-let* ((char-thing-alist (alist-get major-mode moder-mode-local-char-thing-table-alist)))
       (setq-local moder-local-char-thing-table
-                  (moder--merge-thing-table moder-local-char-thing-table
-                                            char-thing-alist)))
-    ;; now buffer predicates
+                  (moder--merge-thing-table
+                   moder-local-char-thing-table
+                   char-thing-alist)))
+    ;; now buffer preds
     (dolist (elt moder-buffer-local-char-thing-table-alist)
       (let ((cond (car elt)))
-        (when (ignore-errors
-                (buffer-match-p cond (current-buffer)))
+        (when (and (ignore-errors
+                     (buffer-match-p (car elt) (current-buffer))))
           (setq-local moder-local-char-thing-table
-                      (moder--merge-thing-table moder-local-char-thing-table
-                                                (cdr elt))))))
+                      (moder--merge-thing-table
+                       moder-local-char-thing-table
+                       (cdr elt))))))
     (when (null moder-local-char-thing-table)
-      (let ((inhibit-message t))
-        (message "`moder-local-char-thing-table' is empty")))
+      (user-error "Table is empty"))
     ;; run hook for later integration
     (when moder-setup-local-things-hook
       (run-hook-with-args 'moder-setup-local-things-hook moder-local-char-thing-table))))
@@ -182,8 +181,7 @@ enabled.  NORMAL state is enabled globally when
 there's no chance for moder to call an init function."
   (let ((state (moder--mode-get-state)))
     (moder--disable-current-state)
-    (moder--switch-state state t)
-    (moder--setup-local-things)))
+    (moder--switch-state state t)))
 
 (defun moder--disable ()
   "Disable Moder."

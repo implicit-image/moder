@@ -551,23 +551,6 @@ Argument ENABLE, non-nil means turn on."
       (add-hook 'ediff-mode-hook 'moder-motion-mode)
     (remove-hook 'ediff-mode-hook 'moder-motion-mode)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; xref-edit-mode
-
-(defvar moder--xref-setup nil)
-
-(defun moder--setup-xref (enable)
-  "Setup `xref-edit-mode'.
-
-Argument ENABLE, non-nil means turn om."
-  (setq moder--xref-setup enable)
-  (if enable
-      (progn
-        (advice-add 'xref-change-to-xref-edit-mode :after #'moder--switch-to-normal)
-        (advice-add 'xref-edit-save-changes :after #'moder--switch-to-motion))
-    (advice-remove 'xref-change-to-xref-edit-mode #'moder--switch-to-normal)
-    (advice-remove 'xref-edit-save-changes #'moder--switch-to-motion)))
-
 ;; Enable / Disable shims
 
 (defun moder--enable-shims ()
@@ -597,8 +580,7 @@ Argument ENABLE, non-nil means turn om."
   (eval-after-load "quail" (lambda () (moder--setup-input-method t)))
   (eval-after-load "skk" (lambda () (moder--setup-ddskk t)))
   (eval-after-load "eat" (lambda () (moder--setup-eat-eshell t)))
-  (eval-after-load "ediff" (lambda () (moder--setup-ediff t)))
-  (eval-after-load "xref" (lambda () (moder--setup-xref-edit t))))
+  (eval-after-load "ediff" (lambda () (moder--setup-ediff t))))
 
 (defun moder--disable-shims ()
   "Remove shim setups."
@@ -620,8 +602,7 @@ Argument ENABLE, non-nil means turn om."
   (when moder--input-method-setup (moder--setup-input-method nil))
   (when moder--ddskk-setup (moder--setup-ddskk nil))
   (when moder--eat-eshell-setup (moder--setup-eat-eshell nil))
-  (when moder--ediff-setup (moder--setup-ediff nil))
-  (when moder--xref-edit-setup (moder--setup-xref-edit nil)))
+  (when moder--ediff-setup (moder--setup-ediff nil)))
 
 ;;; moder-shims.el ends here
 (provide 'moder-shims)
