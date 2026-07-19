@@ -233,25 +233,26 @@ Non-nil BACKWARD means backward direction."
 
 (defun moder--maybe-toggle-beacon-state (&rest _args)
   "Maybe switch to BEACON state."
-  ;; update current selection information
-  (moder--selection-maybe-update-current)
-  ;; if last command start recording kmacro from beacon state
-  ;; create all overlays instead of preview
-  (if (and moder--beacon-started-kmacro defining-kbd-macro)
-      (moder--beacon-ensure-all-overlays)
-    (unless (or defining-kbd-macro executing-kbd-macro
-                (not (eq (current-buffer) (overlay-buffer mouse-secondary-overlay)))) ;; MAYBE: make sure this doesnt blow something up
-      (let ((inside (moder--beacon-inside-secondary-selection)))
-        (cond
-         ((and (moder-normal-mode-p)
-               inside)
-          (moder--switch-state 'beacon)
-          (moder--beacon-update-overlays t))
-         ((moder-beacon-mode-p)
-          (if inside
-              (moder--beacon-update-overlays t)
-            (moder--beacon-remove-overlays)
-            (moder--switch-state 'normal))))))))
+  (unless (minibufferp)
+    ;; update current selection information
+    (moder--selection-maybe-update-current)
+    ;; if last command start recording kmacro from beacon state
+    ;; create all overlays instead of preview
+    (if (and moder--beacon-started-kmacro defining-kbd-macro)
+        (moder--beacon-ensure-all-overlays)
+      (unless (or defining-kbd-macro executing-kbd-macro
+                  (not (eq (current-buffer) (overlay-buffer mouse-secondary-overlay)))) ;; MAYBE: make sure this doesnt blow something up
+        (let ((inside (moder--beacon-inside-secondary-selection)))
+          (cond
+           ((and (moder-normal-mode-p)
+                 inside)
+            (moder--switch-state 'beacon)
+            (moder--beacon-update-overlays t))
+           ((moder-beacon-mode-p)
+            (if inside
+                (moder--beacon-update-overlays t)
+              (moder--beacon-remove-overlays)
+              (moder--switch-state 'normal)))))))))
 
 (defun moder--beacon-shrink-selection ()
   "Shrink selection to one char width."

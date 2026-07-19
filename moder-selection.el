@@ -482,7 +482,7 @@ Assumes that region is active."
     (rectangle-mark-mode 1))))
 
 (defun moder--select-beacon-overlay (ov)
-  "Create a selection from OV and activate it."
+  "Create a selection from beacon overlay OV and activate it."
   (thread-first (moder--selection-from-beacon-overlay ov)
                 (moder--select t)))
 
